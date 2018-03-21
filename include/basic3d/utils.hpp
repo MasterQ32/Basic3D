@@ -12,8 +12,8 @@ namespace Basic3D
     template<typename T>
     Vector2<T> rotate(Vector2<T> const & v, T angle)
     {
-        float const cs = std::cos(angle);
-        float const sn = std::sin(angle);
+        T const cs = std::cos(angle);
+        T const sn = std::sin(angle);
         return Vector2<T>
         {
             v.x * cs - v.y * sn,
@@ -29,7 +29,7 @@ namespace Basic3D
     template<typename T>
     bool intersect(Vector2<T> const & p, Vector2<T> const & r, Vector2<T> const & q, Vector2<T> const & s, T & t,T & u)
     {
-        float d = cross(r, s);
+        T d = cross(r, s);
         Vector2<T> v = q - p;
 
         if (d == 0) // parallel or colinear

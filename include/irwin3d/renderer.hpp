@@ -50,7 +50,7 @@ namespace Irwin3D
         {
             for(int x = 0; x < width; x++)
             {
-                T fx = aspect * (T(2.0) * (x / T(width - 1)) - T(1.0));
+                T fx = aspect * (T(2.0) * (T(x) / T(width - 1)) - T(1.0));
 
                 T deltaAngle = std::atan(T(0.5) * fx);
 
@@ -88,7 +88,7 @@ namespace Irwin3D
 
                     // project the wall height onto the screen and
                     // adjust the zbuffer
-                    wallHeight = int(height / result->distance + 0.5);
+                    wallHeight = int(T(height) / result->distance + T(0.5));
                     texture = result->wall->texture;
                     zbuffer[x] = result->distance;
                 }
@@ -107,13 +107,17 @@ namespace Irwin3D
                 {
                     for (int y = 0; y < wallTop; y++)
                     {
-                        T const fy = 1.0f - ((y + 1) / T(height / 2));
-                        T const d = 1.0f / fy;
+                        T const fy = T(1.0) - (T(2.0 / (height - 1)) * (T(y)));
+
+                        if(fy == T(0))
+                            continue;
+
+                        T const d = T(1.0) / fy;
 
                         vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int((CeilingTexture->width - 1) * fract(pos.x)));
-                        int const v(int((CeilingTexture->height - 1) * fract(pos.y)));
+                        int const u(int(T(CeilingTexture->width - 1) * fract(pos.x)));
+                        int const v(int(T(CeilingTexture->height - 1) * fract(pos.y)));
 
                         pixels[y * width + x] = CeilingTexture->sample(u, v);
                     }
@@ -130,7 +134,7 @@ namespace Irwin3D
                 {
                     for (int y = std::max(0, wallTop); y < maxy; y++)
                     {
-                        int const u = (int)((texture->width - 1) * fract(result->u));
+                        int const u = int(T(texture->width - 1) * fract(result->u));
                         int const v = texture->height * (y - wallTop) / wallHeight;
                         pixels[y * width + x] = texture->sample(u, v);
                     }
@@ -146,14 +150,17 @@ namespace Irwin3D
                 {
                     for (int y = wallBottom; y < height; y++)
                     {
-                        T const fy = ((y - height / 2 + 1) / T(height / 2));
+                        T const fy = T(1.0 / (height/2)) * T(y - height/2 + 1);
 
-                        T const d = 1.0f / fy;
+                        if(fy == T(0))
+                            continue;
+
+                        T const d = T(1.0) / fy;
 
                         vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int((FloorTexture->width - 1) * fract(pos.x)));
-                        int const v(int((FloorTexture->height - 1) * fract(pos.y)));
+                        int const u(int(T(FloorTexture->width - 1) * fract(pos.x)));
+                        int const v(int(T(FloorTexture->height - 1) * fract(pos.y)));
 
                         pixels[y * width + x] = FloorTexture->sample(u, v);
                     }
