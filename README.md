@@ -5,6 +5,8 @@ A collection of software renderers and graphics tools in modern C++
 A basic raycaster that allows rendering of wall segments as well as sprites.
 Has a primitive z-buffer system for sprite-wall-clipping.
 
+![Preview Irwin3D](https://puu.sh/zMp5I/9972bf1406.png)
+
 ### Example
 This is a minimal example on how to use Irwin3D:
 ```cpp
