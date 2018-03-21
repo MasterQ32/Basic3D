@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vec2.hpp"
+#include "vector2.hpp"
 #include <cmath>
 
 namespace Basic3D

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../basic3d/vec2.hpp"
+#include "../basic3d/vector2.hpp"
 #include "../basic3d/utils.hpp"
 #include "../basic3d/texture.hpp"
+#include "../basic3d/image.hpp"
 #include "wall.hpp"
 #include "sprite.hpp"
 #include "scene.hpp"
@@ -26,6 +27,8 @@ namespace Irwin3D
         std::array<vec2_t, width> protorays;
 
     public:
+        pixel_t * RenderTarget;
+
         vec2_t CameraPosition;
         T CameraRotation;
 
@@ -37,9 +40,15 @@ namespace Irwin3D
         Texture const * FloorTexture;
 
     public:
-        Renderer() :
+        Renderer(Basic3D::Image<width,height> & target) : Renderer(target.data())
+        {
+
+        }
+
+        explicit Renderer(pixel_t * rt = nullptr) :
             zbuffer(),
             protorays(),
+            RenderTarget(rt),
             CameraPosition(0,0),
             CameraRotation(0),
             CeilingColor(0x64, 0x95, 0xED),
@@ -68,7 +77,7 @@ namespace Irwin3D
     public:
 
         template<typename TScene>
-        void drawWalls(TScene const & scene, pixel_t * const pixels)
+        void drawWalls(TScene const & scene)
         {
             // render the walls
             for (int x = 0; x < width; x++)
@@ -119,13 +128,13 @@ namespace Irwin3D
                         int const u(int(T(CeilingTexture->width - 1) * fract(pos.x)));
                         int const v(int(T(CeilingTexture->height - 1) * fract(pos.y)));
 
-                        pixels[y * width + x] = CeilingTexture->sample(u, v);
+                        pixel(x,y) = CeilingTexture->sample(u, v);
                     }
                 }
                 else
                 {
                     for (int y = 0; y < wallTop; y++)
-                        pixels[y * width + x] = CeilingColor;
+                        pixel(x,y) = CeilingColor;
                 }
 
                 // draw the wall
@@ -136,13 +145,13 @@ namespace Irwin3D
                     {
                         int const u = int(T(texture->width - 1) * fract(result->u));
                         int const v = texture->height * (y - wallTop) / wallHeight;
-                        pixels[y * width + x] = texture->sample(u, v);
+                        pixel(x,y) = texture->sample(u, v);
                     }
                 }
                 else
                 {
                     for (int y = std::max(0, wallTop); y < maxy; y++)
-                        pixels[y * width + x] = this->WallColor;
+                        pixel(x,y) = this->WallColor;
                 }
 
                 // draw the ground with either texture or color
@@ -162,13 +171,13 @@ namespace Irwin3D
                         int const u(int(T(FloorTexture->width - 1) * fract(pos.x)));
                         int const v(int(T(FloorTexture->height - 1) * fract(pos.y)));
 
-                        pixels[y * width + x] = FloorTexture->sample(u, v);
+                        pixel(x,y) = FloorTexture->sample(u, v);
                     }
                 }
                 else
                 {
                     for (int y = wallBottom; y < height; y++)
-                        pixels[y * width + x] = FloorColor;
+                        pixel(x,y) = FloorColor;
                 }
             }
         }
@@ -183,7 +192,7 @@ namespace Irwin3D
         }
 
         template<typename SpriteCollection>
-        void drawSprites(SpriteCollection const & sprites, pixel_t * const pixels)
+        void drawSprites(SpriteCollection const & sprites)
         {
             // then draw the sprites
             for(auto const & sprite : sprites)
@@ -252,10 +261,15 @@ namespace Irwin3D
                         if ((c.alpha & 0x80) == 0)
                             continue;
 
-                        pixels[y * width + x] = c;
+                        pixel(x,y) = c;
                     }
                 }
             }
+        }
+
+    private: // private utilities
+        pixel_t & pixel(int x, int y) {
+            return RenderTarget[y * width + x];
         }
     };
 }

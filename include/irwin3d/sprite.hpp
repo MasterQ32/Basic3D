@@ -2,7 +2,7 @@
 
 #include "../basic3d/real.hpp"
 #include "../basic3d/texture.hpp"
-#include "../basic3d/vec2.hpp"
+#include "../basic3d/vector2.hpp"
 
 namespace Irwin3D
 {

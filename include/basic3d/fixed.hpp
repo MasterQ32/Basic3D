@@ -31,10 +31,18 @@ namespace Basic3D
 
     public: // functions
 
-        static Fixed raw(word_t value) {
+        constexpr static Fixed raw(word_t value) {
             Fixed f;
             f.value = value;
             return f;
+        }
+
+        constexpr int decimalPart() const {
+            return this->value & decimalMask;
+        }
+
+        constexpr int integralPart() const {
+            return this->value & integralMask;
         }
 
     public: // arithmetic operators

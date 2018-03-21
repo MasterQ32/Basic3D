@@ -80,4 +80,10 @@ namespace Basic3D
     {
         return Vector2<T> { lhs.x * rhs, lhs.y * rhs };
     }
+
+    template<typename T>
+    static inline Vector2<T> operator * (T const & lhs, Vector2<T> const & rhs)
+    {
+        return Vector2<T> { lhs * rhs.x, lhs * rhs.y };
+    }
 }
