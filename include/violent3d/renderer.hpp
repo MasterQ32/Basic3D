@@ -33,6 +33,9 @@ namespace Violent3D
         //! current polygon material
         Material const * Material;
 
+        real MinZ;
+        real MaxZ;
+
     public:
         explicit Renderer(Basic3D::Image<width,height> & target) :
             Renderer(target.data())
@@ -43,7 +46,9 @@ namespace Violent3D
         explicit Renderer(pixel_t * rt = nullptr) :
             zbuffer(),
             RenderTarget(rt),
-            Material(nullptr)
+            Material(nullptr),
+            MinZ(0),
+            MaxZ(1)
         {
 
         }
@@ -99,24 +104,31 @@ namespace Violent3D
                     real const f3 = a12 / total;
                     real const f2 = a31 / total;
 
-                    depth_t z = depth_t(real(std::numeric_limits<depth_t>::max() * (f1 * v1.pos.z + f2 * v2.pos.z + f3 * v3.pos.z)));
+                    real fz = f1 * v1.pos.z + f2 * v2.pos.z + f3 * v3.pos.z;
+
+                    fz -= MinZ;
+                    fz /= (MaxZ - MinZ);
+
+                    depth_t z = depth_t(real(std::numeric_limits<depth_t>::max() * fz));
                     if(z > zat(x,y))
                         continue;
-                    zat(x,y) = z;
 
                     if(tex != nullptr)
                     {
                         Vector2 const uv(f1 * v1.uv + f2 * v2.uv + f3 * v3.uv);
-                        pixel(x,y) = tex->sample(
+                        auto color = tex->sample(
                             int(real(tex->width - 1) * Basic3D::fract(uv.x)),
                             int(real(tex->height - 1) * Basic3D::fract(uv.y)));
-
+                        if((color.alpha & 0x80) == 0)
+                            continue;
+                        pixel(x,y) = color;
                     }
                     else
                     {
                         pixel(x,y) = Material->Albedo;
                         // pixel(x,y) = pixel_t(255 * f1, 255 * f2, 255 * (1 - f1 * f2));
                     }
+                    zat(x,y) = z;
                 }
             }
         }
@@ -131,11 +143,6 @@ namespace Violent3D
     private: // private utilities
         pixel_t & pixel(int x, int y) {
             return RenderTarget[y * width + x];
-        }
-
-        real sign (Vector2 const & p1, Vector2 const & p2, Vector2 const & p3)
-        {
-            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
         }
 
         real areaOfTris(Vector2 const & a, Vector2 const & b, Vector2 const & c)

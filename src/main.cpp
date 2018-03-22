@@ -169,12 +169,62 @@ namespace Live
 
     Renderer<screenSize_X, screenSize_Y> * renderer;
 
-    std::array<Vertex<fixed>, 4> vertices
+    Material * mtl[3];
+
+    std::array<Vertex<fixed>, 24> vertices
     {
-        Vertex<fixed> { Vector3<fixed>(16, 16, 0.5), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(16, 48, 0.5), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(48, 48, 0.5), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>(48, 16, 0.5), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(120,  80,  40), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(120, 160,  40), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(200, 160,  40), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(200,  80,  40), Vector2<fixed>(1, 0) },
+
+        Vertex<fixed> { Vector3<fixed>(120,  80, -40), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(120, 160, -40), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(200, 160, -40), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(200,  80, -40), Vector2<fixed>(1, 0) },
+
+        Vertex<fixed> { Vector3<fixed>(120,  80, -40), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(120,  80,  40), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(120, 160,  40), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(120, 160, -40), Vector2<fixed>(1, 1) },
+
+        Vertex<fixed> { Vector3<fixed>(200,  80, -40), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(200,  80,  40), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(200, 160,  40), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(200, 160, -40), Vector2<fixed>(1, 1) },
+
+
+        Vertex<fixed> { Vector3<fixed>(120,  80, -40), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(120,  80,  40), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(200,  80,  40), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(200,  80, -40), Vector2<fixed>(1, 0) },
+
+        Vertex<fixed> { Vector3<fixed>(120, 160, -40), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(120, 160,  40), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(200, 160,  40), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(200, 160, -40), Vector2<fixed>(1, 0) },
+    };
+
+    std::array<int, 36> indices
+    {
+        0, 1, 3,
+        3, 1, 2,
+
+        4, 5, 7,
+        7, 5, 6,
+
+        8, 9, 11,
+        11, 9, 10,
+
+        12, 13, 15,
+        15, 13, 14,
+
+
+        16, 17, 19,
+        19, 17, 18,
+
+        20, 21, 23,
+        23, 21, 22,
     };
 }
 
@@ -185,11 +235,20 @@ void initFrame(Screen &screen)
     using namespace Live;
 
     static Texture floorTex = loadtex("floor.png");
+    static Texture ceilingTex = loadtex("enemy.png");
+    static Texture wallTex = loadtex("wall.png");
 
-    static Material mtlWhite = { pixel_t(0xFF, 0xFF, 0xFF), &floorTex };
+    static Material mtl0 = { pixel_t(0xFF, 0xFF, 0xFF), &floorTex };
+    static Material mtl1 = { pixel_t(0xFF, 0xFF, 0xFF), &ceilingTex };
+    static Material mtl2 = { pixel_t(0xFF, 0xFF, 0xFF), &wallTex };
+
+    mtl[0] = &mtl0;
+    mtl[1] = &mtl1;
+    mtl[2] = &mtl2;
 
     static Renderer<WIDTH, HEIGHT> ren;
-    ren.Material = &mtlWhite;
+    ren.MinZ = -80;
+    ren.MaxZ =  80;
 
     renderer = &ren;
 }
@@ -199,24 +258,37 @@ void renderFrame(Screen &screen)
     using namespace Live;
 
     angle += 0.01f;
-    for(int i = 0; i < 4; i++)
+    for(int i = 0; i < vertices.size(); i++)
     {
-        auto xy = rotate(Vector2<>::UnitX, angle + i * radians(90.0f));
-        vertices[i].pos = Vector3<>(
-            0.5 * screenSize_X + 64 * xy.x,
-            0.5 * screenSize_Y + 64 * xy.y,
-            0.25f);
+        auto & v = vertices[i];
+
+        auto xy = rotate(Vector2<>(v.pos.x - 0.5f * screenSize_X, v.pos.y - 0.5f * screenSize_Y), 0.01f);
+        v.pos.x = xy.x + 0.5f * screenSize_X;
+        v.pos.y = xy.y + 0.5f * screenSize_Y;
+
+        auto xz = rotate(Vector2<>(v.pos.x - 0.5f * screenSize_X, v.pos.z), 0.015f);
+        v.pos.x = xz.x + 0.5f * screenSize_X;
+        v.pos.z = xz.y;
+
+        auto yz = rotate(Vector2<>(v.pos.y - 0.5f * screenSize_Y, v.pos.z), 0.020f);
+        v.pos.y = yz.x + 0.5f * screenSize_Y;
+        v.pos.z = yz.y;
     }
 
     renderer->RenderTarget = screen.data();
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    renderer->clearz(32000);
+    renderer->clearz();
     screen.clear(Colors::clCornflowerBlue);
 
-    renderer->drawTriangle(vertices[0], vertices[1], vertices[3]);
-    renderer->drawTriangle(vertices[3], vertices[1], vertices[2]);
+    for(int i = 0; i < indices.size(); i += 3)
+    {
+        renderer->Material = mtl[i / 12];
+        renderer->drawTriangle(vertices[indices[i+0]], vertices[indices[i+1]], vertices[indices[i+2]]);
+    }
+    // renderer->drawTriangle(vertices[0], vertices[1], vertices[2]);
+
     auto end = std::chrono::high_resolution_clock::now();
 
     std::cout << "rasterizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " us" << std::endl;
