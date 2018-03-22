@@ -57,5 +57,9 @@ namespace Basic3D
         pixel_t const & at(int x, int y) const {
             return this->scanline(y)[x];
         }
+
+        constexpr size_t size() const {
+            return sizeof(pixel_t) * _width * _height;
+        }
     };
 }

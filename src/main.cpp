@@ -7,6 +7,10 @@
 #include <memory>
 #include <chrono>
 
+// we use this only in here
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 using namespace Basic3D;
 
 const int WIDTH = 320;
@@ -26,17 +30,15 @@ static void writeppm(char const * fileName, pixel_t const * pixels, int width, i
     file.flush();
 }
 
-static Texture loadtex(char const * fileName, int w, int h)
+static Texture loadtex(char const * fileName)
 {
-    std::ifstream file(fileName, std::ios::binary);
-    if(!file.good()) {
+    int w, h;
+    stbi_uc * image = stbi_load(fileName, &w, &h, nullptr, 4);
+    if(image == nullptr) {
         std::cout << fileName << " not found!" << std::endl;
-        std::exit(EXIT_FAILURE);
+        exit(0);
     }
-    std::unique_ptr<pixel_t[]> pixels(std::make_unique<pixel_t[]>(w * h));
-    file.read(reinterpret_cast<char*>(pixels.get()), w * h * h);
-    file.close();
-    return Texture(pixels.release(), w, h);
+    return Texture(reinterpret_cast<pixel_t*>(image), w, h);
 }
 
 template<int a, int b>
@@ -55,10 +57,10 @@ static void test_raycaster()
 
     Image<WIDTH, HEIGHT> image;
 
-    Texture floorTex = loadtex("floor.tex", 32, 32);
-    Texture ceilingTex = loadtex("ceiling.tex", 32, 32);
-    Texture wallTex = loadtex("wall.tex", 32, 32);
-    Texture enemyTex = loadtex("enemy.tex", 64, 120);
+    Texture floorTex = loadtex("floor.png");
+    Texture ceilingTex = loadtex("ceiling.png");
+    Texture wallTex = loadtex("wall.png");
+    Texture enemyTex = loadtex("enemy.png");
 
     SimpleScene<fixed> scene;
     scene.getWalls().push_back(Wall<fixed> {
@@ -107,10 +109,10 @@ static void test_rasterizer()
 
     image.clear(0x00, 0x00, 0x80);
 
-    Texture floorTex = loadtex("floor.tex", 32, 32);
-    Texture ceilingTex = loadtex("ceiling.tex", 32, 32);
-    Texture wallTex = loadtex("wall.tex", 32, 32);
-    Texture enemyTex = loadtex("enemy.tex", 64, 120);
+    Texture floorTex = loadtex("floor.png");
+    Texture ceilingTex = loadtex("ceiling.png");
+    Texture wallTex = loadtex("wall.png");
+    Texture enemyTex = loadtex("enemy.png");
 
     Material mtlWhite = { pixel_t(0xFF, 0xFF, 0xFF), &enemyTex };
 
@@ -147,11 +149,76 @@ static void test_rasterizer()
     writeppm("result-rasterizer.ppm", image.data(), WIDTH, HEIGHT);
 }
 
-int main()
+int _main()
 {
     test_raycaster();
 
     test_rasterizer();
 
     return 0;
+}
+
+#include "common.h"
+
+namespace Live
+{
+    using namespace Basic3D;
+    using namespace Violent3D;
+
+    float angle = 0.0f;
+
+    Renderer<screenSize_X, screenSize_Y> * renderer;
+
+    std::array<Vertex<fixed>, 4> vertices
+    {
+        Vertex<fixed> { Vector3<fixed>(16, 16, 0.5), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(16, 48, 0.5), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(48, 48, 0.5), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(48, 16, 0.5), Vector2<fixed>(1, 0) },
+    };
+}
+
+void initFrame(Screen &screen)
+{
+    screen.clear(Colors::clBlue);
+
+    using namespace Live;
+
+    static Texture floorTex = loadtex("floor.png");
+
+    static Material mtlWhite = { pixel_t(0xFF, 0xFF, 0xFF), &floorTex };
+
+    static Renderer<WIDTH, HEIGHT> ren;
+    ren.Material = &mtlWhite;
+
+    renderer = &ren;
+}
+
+void renderFrame(Screen &screen)
+{
+    using namespace Live;
+
+    angle += 0.01f;
+    for(int i = 0; i < 4; i++)
+    {
+        auto xy = rotate(Vector2<>::UnitX, angle + i * radians(90.0f));
+        vertices[i].pos = Vector3<>(
+            0.5 * screenSize_X + 64 * xy.x,
+            0.5 * screenSize_Y + 64 * xy.y,
+            0.25f);
+    }
+
+    renderer->RenderTarget = screen.data();
+
+    auto begin = std::chrono::high_resolution_clock::now();
+
+    renderer->clearz(32000);
+    screen.clear(Colors::clCornflowerBlue);
+
+    renderer->drawTriangle(vertices[0], vertices[1], vertices[3]);
+    renderer->drawTriangle(vertices[3], vertices[1], vertices[2]);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "rasterizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " us" << std::endl;
+
 }

@@ -10,6 +10,18 @@ namespace Basic3D
     static const float PiOver2 = float(1.57079632679489661923);
 
     template<typename T>
+    T radians(T degree)
+    {
+        return T(Pi) * degree / T(180);
+    }
+
+    template<typename T>
+    T degree(T degree)
+    {
+        return T(180) * degree / T(Pi);
+    }
+
+    template<typename T>
     Vector2<T> rotate(Vector2<T> const & v, T angle)
     {
         T const cs = std::cos(angle);

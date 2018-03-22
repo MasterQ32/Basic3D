@@ -1,12 +1,13 @@
 #pragma once
 
 #include "scene.hpp"
+#include "../basic3d/utils.hpp"
 
 #include <vector>
 
 namespace Irwin3D
 {
-    template<typename T = real_t>
+    template<typename T = Basic3D::real_t>
     class SimpleScene :
         public IScene<T>
     {

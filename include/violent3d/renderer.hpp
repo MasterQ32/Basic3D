@@ -78,6 +78,7 @@ namespace Violent3D
             int const bottom = std::min(height - 1, int(std::max(std::max(v2d1.y, v2d2.y), v2d3.y)));
 
             real const total = areaOfTris(v2d1, v2d2, v2d3);
+            real const reftotal = std::nexttoward(std::nexttoward(total, total + 1), total + 1); // adjust our threshold just a teeny tiny bit
 
             Texture const * const tex = Material->Texture;
 
@@ -91,8 +92,8 @@ namespace Violent3D
                     real const a23 = areaOfTris(v2d2, v2d3, pt);
                     real const a31 = areaOfTris(v2d3, v2d1, pt);
 
-                    if((a12 + a23 + a31) > total)
-                        continue;
+                    if((a12 + a23 + a31) > reftotal)
+                         continue;
 
                     real const f1 = a23 / total;
                     real const f3 = a12 / total;
@@ -107,13 +108,14 @@ namespace Violent3D
                     {
                         Vector2 const uv(f1 * v1.uv + f2 * v2.uv + f3 * v3.uv);
                         pixel(x,y) = tex->sample(
-                            int(real(tex->width - 1) * fract(uv.x)),
-                            int(real(tex->height - 1) * fract(uv.y)));
+                            int(real(tex->width - 1) * Basic3D::fract(uv.x)),
+                            int(real(tex->height - 1) * Basic3D::fract(uv.y)));
 
                     }
                     else
                     {
                         pixel(x,y) = Material->Albedo;
+                        // pixel(x,y) = pixel_t(255 * f1, 255 * f2, 255 * (1 - f1 * f2));
                     }
                 }
             }

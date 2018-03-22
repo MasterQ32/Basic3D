@@ -26,5 +26,9 @@ namespace Basic3D
         pixel_t sample(int x, int y) const {
             return this->data[(y % this->height) * this->width + (x % this->width)];
         }
+
+        size_t size() const {
+            return sizeof(pixel_t) * width * height;
+        }
     };
 }

@@ -8,3 +8,4 @@
 #include "basic3d/real.hpp"
 #include "basic3d/utils.hpp"
 #include "basic3d/image.hpp"
+#include "basic3d/colors.hpp"

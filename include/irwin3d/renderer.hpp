@@ -125,8 +125,8 @@ namespace Irwin3D
 
                         vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int(T(CeilingTexture->width - 1) * fract(pos.x)));
-                        int const v(int(T(CeilingTexture->height - 1) * fract(pos.y)));
+                        int const u(int(T(CeilingTexture->width - 1) * Basic3D::fract(pos.x)));
+                        int const v(int(T(CeilingTexture->height - 1) * Basic3D::fract(pos.y)));
 
                         pixel(x,y) = CeilingTexture->sample(u, v);
                     }
@@ -143,7 +143,7 @@ namespace Irwin3D
                 {
                     for (int y = std::max(0, wallTop); y < maxy; y++)
                     {
-                        int const u = int(T(texture->width - 1) * fract(result->u));
+                        int const u = int(T(texture->width - 1) * Basic3D::fract(result->u));
                         int const v = texture->height * (y - wallTop) / wallHeight;
                         pixel(x,y) = texture->sample(u, v);
                     }
@@ -168,8 +168,8 @@ namespace Irwin3D
 
                         vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int(T(FloorTexture->width - 1) * fract(pos.x)));
-                        int const v(int(T(FloorTexture->height - 1) * fract(pos.y)));
+                        int const u(int(T(FloorTexture->width - 1) * Basic3D::fract(pos.x)));
+                        int const v(int(T(FloorTexture->height - 1) * Basic3D::fract(pos.y)));
 
                         pixel(x,y) = FloorTexture->sample(u, v);
                     }
@@ -198,9 +198,9 @@ namespace Irwin3D
             for(auto const & sprite : sprites)
             {
                 auto delta = sprite.position - this->CameraPosition;
-                auto angle = angdiff(std::atan2(delta.y, delta.x), this->CameraRotation);
+                auto angle = Basic3D::angdiff(std::atan2(delta.y, delta.x), this->CameraRotation);
 
-                if (std::abs(angle) > PiOver2)
+                if (std::abs(angle) > Basic3D::PiOver2)
                     continue;
 
                 auto distance2 = length2(delta);
