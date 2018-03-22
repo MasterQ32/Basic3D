@@ -38,6 +38,12 @@ static Texture loadtex(char const * fileName)
         std::cout << fileName << " not found!" << std::endl;
         exit(0);
     }
+
+#if defined(BASIC3D_BGRA)
+    for(int i = 0; i < w * h; i++)
+        std::swap(image[4*i+0], image[4*i+2]);
+#endif
+
     return Texture(reinterpret_cast<pixel_t*>(image), w, h);
 }
 
@@ -107,7 +113,7 @@ static void test_rasterizer()
 
     Image<WIDTH, HEIGHT> image;
 
-    image.clear(0x00, 0x00, 0x80);
+    image.clear(Colors::clDarkBlue);
 
     Texture floorTex = loadtex("floor.png");
     Texture ceilingTex = loadtex("ceiling.png");
@@ -171,38 +177,39 @@ namespace Live
 
     Material * mtl[3];
 
+    /*
     std::array<Vertex<fixed>, 24> vertices
     {
-        Vertex<fixed> { Vector3<fixed>(120,  80,  40), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(120, 160,  40), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(200, 160,  40), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>(200,  80,  40), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1, -1,  1), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1,  1,  1), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1,  1,  1), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(1, 0) },
 
-        Vertex<fixed> { Vector3<fixed>(120,  80, -40), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(120, 160, -40), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(200, 160, -40), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>(200,  80, -40), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1, -1, -1), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1,  1, -1), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1,  1, -1), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(1, 0) },
 
-        Vertex<fixed> { Vector3<fixed>(120,  80, -40), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(120,  80,  40), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(120, 160,  40), Vector2<fixed>(1, 0) },
-        Vertex<fixed> { Vector3<fixed>(120, 160, -40), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(-1, -1, -1), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>(-1, -1,  1), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1,  1,  1), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1,  1, -1), Vector2<fixed>(1, 1) },
 
-        Vertex<fixed> { Vector3<fixed>(200,  80, -40), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(200,  80,  40), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(200, 160,  40), Vector2<fixed>(1, 0) },
-        Vertex<fixed> { Vector3<fixed>(200, 160, -40), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(1, 1) },
 
 
-        Vertex<fixed> { Vector3<fixed>(120,  80, -40), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(120,  80,  40), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(200,  80,  40), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>(200,  80, -40), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1, -1, -1), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1, -1,  1), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(1, 0) },
 
-        Vertex<fixed> { Vector3<fixed>(120, 160, -40), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(120, 160,  40), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(200, 160,  40), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>(200, 160, -40), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1,  1, -1), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-1,  1,  1), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1,  1,  1), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>( 1,  1, -1), Vector2<fixed>(1, 0) },
     };
 
     std::array<int, 36> indices
@@ -219,23 +226,29 @@ namespace Live
         12, 13, 15,
         15, 13, 14,
 
-
         16, 17, 19,
         19, 17, 18,
 
         20, 21, 23,
         23, 21, 22,
     };
+    */
+
+#include "terrain.hpp"
+#include "skydome.hpp"
 }
 
 void initFrame(Screen &screen)
 {
+    test_rasterizer();
+    test_raycaster();
+
     screen.clear(Colors::clBlue);
 
     using namespace Live;
 
-    static Texture floorTex = loadtex("floor.png");
-    static Texture ceilingTex = loadtex("enemy.png");
+    static Texture floorTex = loadtex("terrain.png");
+    static Texture ceilingTex = loadtex("sky.png");
     static Texture wallTex = loadtex("wall.png");
 
     static Material mtl0 = { pixel_t(0xFF, 0xFF, 0xFF), &floorTex };
@@ -253,41 +266,82 @@ void initFrame(Screen &screen)
     renderer = &ren;
 }
 
+template<typename T>
+static Basic3D::Vector3<T> transform(Basic3D::Vector3<T> vec, std::array<T, 16> const & matrix)
+{
+    T x = vec.x * matrix[ 0] + vec.y * matrix[ 4] + vec.z * matrix[ 8] + matrix[12];
+    T y = vec.x * matrix[ 1] + vec.y * matrix[ 5] + vec.z * matrix[ 9] + matrix[13];
+    T z = vec.x * matrix[ 2] + vec.y * matrix[ 6] + vec.z * matrix[10] + matrix[14];
+    T w = vec.x * matrix[ 3] + vec.y * matrix[ 7] + vec.z * matrix[11] + matrix[15];
+
+    return Basic3D::Vector3<T>(x / w, y / w, z / w);
+}
+
+static std::array<real_t, 16> matrix =
+{
+    -0.4552882, -0.3561772, -0.9138938, -0.9137153,
+    0, 1.689785, -0.219609, -0.2195661,
+    -1.21664, 0.1332879, 0.3419953, 0.3419285,
+    -0.9931068, -3.696177, 5.849844, 6.048681,
+
+};
+
+template<typename T1, typename T2, int sizeA, int sizeB>
+static void drawModel(
+    std::array<Violent3D::Vertex<T1>,sizeA> const & vertices,
+    std::array<T2,sizeB> const & indices)
+{
+    static std::array<Violent3D::Vertex<>, sizeA> transformed;
+    for(int i = 0; i < vertices.size(); i++)
+    {
+        transformed[i].pos = transform(vertices[i].pos, matrix);
+        transformed[i].uv = vertices[i].uv;
+        transformed[i].pos.x *= (screenSize_X / 2);
+        transformed[i].pos.y *= -(screenSize_Y / 2);
+    }
+
+    for(int i = 0; i < indices.size(); i += 3)
+        Live::renderer->drawTriangle(transformed[indices[i+0]], transformed[indices[i+1]], transformed[indices[i+2]]);
+}
+
 void renderFrame(Screen &screen)
 {
     using namespace Live;
 
+    /*
     angle += 0.01f;
-    for(int i = 0; i < vertices.size(); i++)
+    for(int i = 0; i < terrain::vertices.size(); i++)
     {
         auto & v = vertices[i];
 
-        auto xy = rotate(Vector2<>(v.pos.x - 0.5f * screenSize_X, v.pos.y - 0.5f * screenSize_Y), 0.01f);
-        v.pos.x = xy.x + 0.5f * screenSize_X;
-        v.pos.y = xy.y + 0.5f * screenSize_Y;
+        auto xy = rotate(Vector2<>(v.pos.x, v.pos.y), 0.01f);
+        v.pos.x = xy.x;
+        v.pos.y = xy.y;
 
-        auto xz = rotate(Vector2<>(v.pos.x - 0.5f * screenSize_X, v.pos.z), 0.015f);
-        v.pos.x = xz.x + 0.5f * screenSize_X;
+        auto xz = rotate(Vector2<>(v.pos.x, v.pos.z), 0.015f);
+        v.pos.x = xz.x;
         v.pos.z = xz.y;
 
-        auto yz = rotate(Vector2<>(v.pos.y - 0.5f * screenSize_Y, v.pos.z), 0.020f);
-        v.pos.y = yz.x + 0.5f * screenSize_Y;
+        auto yz = rotate(Vector2<>(v.pos.y, v.pos.z), 0.020f);
+        v.pos.y = yz.x;
         v.pos.z = yz.y;
     }
+    */
 
     renderer->RenderTarget = screen.data();
 
     auto begin = std::chrono::high_resolution_clock::now();
 
     renderer->clearz();
-    screen.clear(Colors::clCornflowerBlue);
+    screen.clear(0x58, 0x7c, 0xef);
 
-    for(int i = 0; i < indices.size(); i += 3)
-    {
-        renderer->Material = mtl[i / 12];
-        renderer->drawTriangle(vertices[indices[i+0]], vertices[indices[i+1]], vertices[indices[i+2]]);
-    }
-    // renderer->drawTriangle(vertices[0], vertices[1], vertices[2]);
+    renderer->Material = mtl[0];
+    drawModel(terrain::vertices, terrain::indices);
+
+    renderer->Material = mtl[1];
+    drawModel(skydome::vertices, skydome::indices);
+
+
 
     auto end = std::chrono::high_resolution_clock::now();
 

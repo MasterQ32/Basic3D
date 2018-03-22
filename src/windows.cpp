@@ -14,7 +14,7 @@ extern "C" FILE * __iob_func()
 // int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
 {
-    fprintf(stdout, "Hello from SDL!\n");
+    fprintf(stdout, "");
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_Surface * surf = SDL_SetVideoMode(screenSize_X, screenSize_Y, 32, SDL_DOUBLEBUF | SDL_SWSURFACE);
@@ -26,8 +26,10 @@ int main(int argc, char *argv[])
         SDL_Event e;
         while(SDL_PollEvent(&e))
         {
-            if(e.type == SDL_QUIT)
+            if((e.type == SDL_QUIT) || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
+                ExitProcess(0);
                 return 0;
+            }
         }
 
         renderFrame(screen);

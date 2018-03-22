@@ -8,9 +8,15 @@ namespace Basic3D
     {
         union {
             struct {
+#if defined(BASIC3D_BGRA)
+                uint8_t blue;
+                uint8_t green;
+                uint8_t red;
+#else
                 uint8_t red;
                 uint8_t green;
                 uint8_t blue;
+#endif
                 uint8_t alpha;
             };
             uint32_t value;
@@ -20,7 +26,11 @@ namespace Basic3D
 
         pixel_t(uint32_t value) : value(value) { }
 
+#if defined(BASIC3D_BGRA)
+        pixel_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF) : blue(b), green(g), red(r), alpha(a) { }
+#else
         pixel_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF) : red(r), green(g), blue(b), alpha(a) { }
+#endif
 
         pixel_t(pixel_t const &) = default;
     };

@@ -71,9 +71,9 @@ namespace Violent3D
         {
             assert(Material != nullptr);
 
-            Vector2 const v2d1(v1.pos.x, v1.pos.y);
-            Vector2 const v2d2(v2.pos.x, v2.pos.y);
-            Vector2 const v2d3(v3.pos.x, v3.pos.y);
+            Vector2 const v2d1(v1.pos.x + width/2, v1.pos.y + height/2);
+            Vector2 const v2d2(v2.pos.x + width/2, v2.pos.y + height/2);
+            Vector2 const v2d3(v3.pos.x + width/2, v3.pos.y + height/2);
 
             // calculate bounding rectangle with clipping applied (first "inverse" limiter)
             int const left = std::max(0, int(std::min(std::min(v2d1.x, v2d2.x), v2d3.x)));
@@ -97,7 +97,7 @@ namespace Violent3D
                     real const a23 = areaOfTris(v2d2, v2d3, pt);
                     real const a31 = areaOfTris(v2d3, v2d1, pt);
 
-                    if((a12 + a23 + a31) > reftotal)
+                    if((a12 + a23 + a31) > 1.001f * reftotal)
                          continue;
 
                     real const f1 = a23 / total;
@@ -105,6 +105,8 @@ namespace Violent3D
                     real const f2 = a31 / total;
 
                     real fz = f1 * v1.pos.z + f2 * v2.pos.z + f3 * v3.pos.z;
+                    if((fz < MinZ) || (fz >= MaxZ))
+                        continue;
 
                     fz -= MinZ;
                     fz /= (MaxZ - MinZ);
