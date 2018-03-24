@@ -6,10 +6,10 @@
 
 namespace Irwin3D
 {
-    template<typename T = Basic3D::real_t>
+    template<typename Pixel = Basic3D::Pixel32, typename real = Basic3D::real_t>
     struct Sprite
     {
-        Basic3D::Vector2<T> position;
-        Basic3D::Texture const * texture;
+        Basic3D::Vector2<real> position;
+        Basic3D::Texture<Pixel> const * texture;
     };
 }

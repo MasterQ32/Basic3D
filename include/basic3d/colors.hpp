@@ -11,6 +11,8 @@ namespace Basic3D
 {
 	namespace Colors
 	{
+        using pixel_t = Basic3D::Pixel32;
+
 		static const pixel_t clAirForceBlueRaf                     = pixel_t(0x5D,0x8A,0xA8);
 		static const pixel_t clAirForceBlueUsaf                    = pixel_t(0x00,0x30,0x8F);
 		static const pixel_t clAirSuperiorityBlue                  = pixel_t(0x72,0xA0,0xC1);

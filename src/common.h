@@ -1,7 +1,6 @@
 #pragma once
 
-#include <basic3d.hpp>
-
+#include <basic3d/image.hpp>
 
 static const int   screenSize_X = 320;
 static const int   screenSize_Y = 240;

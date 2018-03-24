@@ -4,8 +4,11 @@
 
 namespace Basic3D
 {
+    template<typename Pixel = Basic3D::Pixel32>
     class Texture
     {
+    public:
+        typedef Pixel pixel_t;
     public:
         pixel_t const * const data;
         int const width;

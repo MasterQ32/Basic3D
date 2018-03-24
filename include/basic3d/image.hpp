@@ -7,14 +7,16 @@
 
 namespace Basic3D
 {
-    template<int _width, int _height>
+    template<int WIDTH, int HEIGHT, typename Pixel = Basic3D::Pixel32>
     class Image :
-        public Texture
+        public Texture<Pixel>
     {
-    private:
-        std::array<pixel_t, _width * _height> pixels;
     public:
-        Image() : Texture(pixels.data(), _width, _height)
+        typedef Pixel pixel_t;
+    private:
+        std::array<pixel_t, WIDTH * HEIGHT> pixels;
+    public:
+        Image() : Texture(pixels.data(), WIDTH, HEIGHT)
         {
 
         }
@@ -27,7 +29,7 @@ namespace Basic3D
 
         //! clears the image to the given color
         void clear(pixel_t color) {
-            for(int i = 0; i < (_width * _height); i++)
+            for(int i = 0; i < (WIDTH * HEIGHT); i++)
                 this->pixels[i] = color;
         }
 
@@ -41,25 +43,26 @@ namespace Basic3D
         }
 
         pixel_t * scanline(int y) {
-            return &this->pixels[y * _width];
+            return &this->pixels[y * WIDTH];
         }
 
         pixel_t const * scanline(int y) const {
-            return &this->pixels[y * _width];
+            return &this->pixels[y * WIDTH];
         }
 
         //! gets a pixel value
-        pixel_t & at(int x, int y) {
+        pixel_t & pixel(int x, int y) {
             return this->scanline(y)[x];
         }
 
         //! gets a pixel value
-        pixel_t const & at(int x, int y) const {
+        pixel_t const & pixel(int x, int y) const {
             return this->scanline(y)[x];
         }
 
+        //! returns the size of the image in bytes.
         constexpr size_t size() const {
-            return sizeof(pixel_t) * _width * _height;
+            return sizeof(pixel_t) * WIDTH * HEIGHT;
         }
     };
 }

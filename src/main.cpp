@@ -16,7 +16,7 @@ using namespace Basic3D;
 const int WIDTH = 320;
 const int HEIGHT = 240;
 
-static void writeppm(char const * fileName, pixel_t const * pixels, int width, int height)
+static void writeppm(char const * fileName, Pixel32 const * pixels, int width, int height)
 {
     std::ofstream file(fileName, std::ios::binary);
     file << "P6 " << width << " " << height << " 255\n";
@@ -30,7 +30,7 @@ static void writeppm(char const * fileName, pixel_t const * pixels, int width, i
     file.flush();
 }
 
-static Texture loadtex(char const * fileName)
+static Texture<> loadtex(char const * fileName)
 {
     int w, h;
     stbi_uc * image = stbi_load(fileName, &w, &h, nullptr, 4);
@@ -44,7 +44,7 @@ static Texture loadtex(char const * fileName)
         std::swap(image[4*i+0], image[4*i+2]);
 #endif
 
-    return Texture(reinterpret_cast<pixel_t*>(image), w, h);
+    return Texture<>(reinterpret_cast<Pixel32*>(image), w, h);
 }
 
 template<int a, int b>
@@ -63,20 +63,20 @@ static void test_raycaster()
 
     Image<WIDTH, HEIGHT> image;
 
-    Texture floorTex = loadtex("floor.png");
-    Texture ceilingTex = loadtex("ceiling.png");
-    Texture wallTex = loadtex("wall.png");
-    Texture enemyTex = loadtex("enemy.png");
+    Texture<> floorTex = loadtex("floor.png");
+    Texture<> ceilingTex = loadtex("ceiling.png");
+    Texture<> wallTex = loadtex("wall.png");
+    Texture<> enemyTex = loadtex("enemy.png");
 
-    SimpleScene<fixed> scene;
-    scene.getWalls().push_back(Wall<fixed> {
+    SimpleScene<Pixel32,fixed> scene;
+    scene.getWalls().push_back(Wall<Pixel32,fixed> {
         &wallTex,
         Vector2<fixed>(0.0f, -1.0f),
         Vector2<fixed>(3.0f, -1.0f),
         0,
         3
     });
-    scene.getWalls().push_back(Wall<fixed> {
+    scene.getWalls().push_back(Wall<Pixel32,fixed> {
         &wallTex,
         Vector2<fixed>(3.0f, -1.0f),
         Vector2<fixed>(3.0f,  1.0f),
@@ -84,9 +84,9 @@ static void test_raycaster()
         3
     });
 
-    std::array<Sprite<fixed>, 1> sprites
+    std::array<Sprite<Pixel32,fixed>, 1> sprites
     {
-        Sprite<fixed> {
+        Sprite<Pixel32,fixed> {
             Vector2<fixed>(2.0f, 0.0f),
             &enemyTex
         }
@@ -94,7 +94,7 @@ static void test_raycaster()
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    Renderer<WIDTH, HEIGHT, fixed> renderer(image);
+    Irwin3D::Renderer<WIDTH, HEIGHT> renderer(&image);
     renderer.FloorTexture = &floorTex;
     renderer.CeilingTexture = &ceilingTex;
     renderer.drawWalls(scene);
@@ -115,12 +115,12 @@ static void test_rasterizer()
 
     image.clear(Colors::clDarkBlue);
 
-    Texture floorTex = loadtex("floor.png");
-    Texture ceilingTex = loadtex("ceiling.png");
-    Texture wallTex = loadtex("wall.png");
-    Texture enemyTex = loadtex("enemy.png");
+    Texture<> floorTex = loadtex("floor.png");
+    Texture<> ceilingTex = loadtex("ceiling.png");
+    Texture<> wallTex = loadtex("wall.png");
+    Texture<> enemyTex = loadtex("enemy.png");
 
-    Material mtlWhite = { pixel_t(0xFF, 0xFF, 0xFF), &enemyTex };
+    Material<Pixel32> mtlWhite = { Pixel32(0xFF, 0xFF, 0xFF), &enemyTex };
 
     std::array<Vertex<fixed>, 4> vertices
     {
@@ -132,7 +132,7 @@ static void test_rasterizer()
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    Renderer<WIDTH, HEIGHT> renderer(image);
+    Violent3D::Renderer<WIDTH, HEIGHT> renderer(&image);
 
     renderer.Material = &mtlWhite;
 
@@ -173,9 +173,11 @@ namespace Live
 
     float angle = 0.0f;
 
-    Renderer<screenSize_X, screenSize_Y> * renderer;
+    Violent3D::Renderer<screenSize_X, screenSize_Y> * renderer;
 
-    Material * mtl[3];
+    Material<Pixel32> * mtl[3];
+
+    ZBuffer<screenSize_X, screenSize_Y> zbuffer;
 
     /*
     std::array<Vertex<fixed>, 24> vertices
@@ -247,34 +249,35 @@ void initFrame(Screen &screen)
 
     using namespace Live;
 
-    static Texture floorTex = loadtex("terrain.png");
-    static Texture ceilingTex = loadtex("sky.png");
-    static Texture wallTex = loadtex("wall.png");
+    static Texture<> floorTex = loadtex("terrain.png");
+    static Texture<> ceilingTex = loadtex("sky.png");
+    static Texture<> wallTex = loadtex("wall.png");
 
-    static Material mtl0 = { pixel_t(0xFF, 0xFF, 0xFF), &floorTex };
-    static Material mtl1 = { pixel_t(0xFF, 0xFF, 0xFF), &ceilingTex };
-    static Material mtl2 = { pixel_t(0xFF, 0xFF, 0xFF), &wallTex };
+    static Material<Pixel32> mtl0 = { Pixel32(0xFF, 0xFF, 0xFF), &floorTex };
+    static Material<Pixel32> mtl1 = { Pixel32(0xFF, 0xFF, 0xFF), &ceilingTex };
+    static Material<Pixel32> mtl2 = { Pixel32(0xFF, 0xFF, 0xFF), &wallTex };
 
     mtl[0] = &mtl0;
     mtl[1] = &mtl1;
     mtl[2] = &mtl2;
 
-    static Renderer<WIDTH, HEIGHT> ren;
+    static Violent3D::Renderer<WIDTH, HEIGHT> ren;
     ren.MinZ = -80;
     ren.MaxZ =  80;
+    ren.setZBuffer(&zbuffer);
 
     renderer = &ren;
 }
 
-template<typename T>
-static Basic3D::Vector3<T> transform(Basic3D::Vector3<T> vec, std::array<T, 16> const & matrix)
+template<typename real>
+static Basic3D::Vector3<real> transform(Basic3D::Vector3<real> vec, std::array<real, 16> const & matrix)
 {
-    T x = vec.x * matrix[ 0] + vec.y * matrix[ 4] + vec.z * matrix[ 8] + matrix[12];
-    T y = vec.x * matrix[ 1] + vec.y * matrix[ 5] + vec.z * matrix[ 9] + matrix[13];
-    T z = vec.x * matrix[ 2] + vec.y * matrix[ 6] + vec.z * matrix[10] + matrix[14];
-    T w = vec.x * matrix[ 3] + vec.y * matrix[ 7] + vec.z * matrix[11] + matrix[15];
+    real x = vec.x * matrix[ 0] + vec.y * matrix[ 4] + vec.z * matrix[ 8] + matrix[12];
+    real y = vec.x * matrix[ 1] + vec.y * matrix[ 5] + vec.z * matrix[ 9] + matrix[13];
+    real z = vec.x * matrix[ 2] + vec.y * matrix[ 6] + vec.z * matrix[10] + matrix[14];
+    real w = vec.x * matrix[ 3] + vec.y * matrix[ 7] + vec.z * matrix[11] + matrix[15];
 
-    return Basic3D::Vector3<T>(x / w, y / w, z / w);
+    return Basic3D::Vector3<real>(x / w, y / w, z / w);
 }
 
 static std::array<real_t, 16> matrix =
@@ -328,11 +331,11 @@ void renderFrame(Screen &screen)
     }
     */
 
-    renderer->RenderTarget = screen.data();
+    renderer->setRenderTarget(&screen);
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    renderer->clearz();
+    zbuffer.clear();
     screen.clear(0x58, 0x7c, 0xef);
 
     renderer->Material = mtl[0];
@@ -348,3 +351,4 @@ void renderFrame(Screen &screen)
     std::cout << "rasterizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " us" << std::endl;
 
 }
+

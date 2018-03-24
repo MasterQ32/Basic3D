@@ -9,43 +9,30 @@
 #include "../basic3d/vector3.hpp"
 #include "../basic3d/pixel.hpp"
 #include "../basic3d/texture.hpp"
+#include "../basic3d/renderer.hpp"
 #include "../basic3d/image.hpp"
-#include "../basic3d/fixedmath.hpp"
+#include "../basic3d/zbuffer.hpp"
 
 #include <limits>
 
 namespace Violent3D
 {
-    template<int width, int height, typename depth_t = uint16_t, typename real = Basic3D::real_t>
-    class Renderer
+    template<int WIDTH, int HEIGHT, typename RenderTarget = Basic3D::Image<WIDTH,HEIGHT>, typename ZBuffer = Basic3D::ZBuffer<WIDTH,HEIGHT,uint16_t>, typename real = Basic3D::real_t>
+    class Renderer :
+        public Basic3D::Renderer<WIDTH, HEIGHT, RenderTarget, ZBuffer>
     {
-        typedef Basic3D::pixel_t pixel_t;
-        typedef Basic3D::Texture Texture;
+        typedef Basic3D::Texture<pixel_t> Texture;
         typedef Basic3D::Vector2<real> Vector2;
         typedef Basic3D::Vector3<real> Vector3;
-    private:
-        std::array<depth_t, width * height> zbuffer;
-
     public:
-        //! current render target
-        pixel_t * RenderTarget;
-
         //! current polygon material
-        Material const * Material;
+        Violent3D::Material<pixel_t> const * Material;
 
         real MinZ;
         real MaxZ;
-
     public:
-        explicit Renderer(Basic3D::Image<width,height> & target) :
-            Renderer(target.data())
-        {
-            this->clearz();
-        }
-
-        explicit Renderer(pixel_t * rt = nullptr) :
-            zbuffer(),
-            RenderTarget(rt),
+        explicit Renderer(RenderTarget * target = nullptr, ZBuffer * zbuffer = nullptr) :
+            Basic3D::Renderer<WIDTH, HEIGHT, RenderTarget, ZBuffer>(target, zbuffer),
             Material(nullptr),
             MinZ(0),
             MaxZ(1)
@@ -61,12 +48,6 @@ namespace Violent3D
         }
 
     public:
-        void clearz(depth_t value = std::numeric_limits<depth_t>::max())
-        {
-            for(int i = 0; i < (width * height); i++)
-                this->zbuffer[i] = value;
-        }
-
         void drawTriangle(Vertex<real> const & v1, Vertex<real> const & v2, Vertex<real> const & v3)
         {
             assert(Material != nullptr);
@@ -112,7 +93,7 @@ namespace Violent3D
                     fz /= (MaxZ - MinZ);
 
                     depth_t z = depth_t(real(std::numeric_limits<depth_t>::max() * fz));
-                    if(z > zat(x,y))
+                    if(z > depth(x,y))
                         continue;
 
                     if(tex != nullptr)
@@ -130,23 +111,12 @@ namespace Violent3D
                         pixel(x,y) = Material->Albedo;
                         // pixel(x,y) = pixel_t(255 * f1, 255 * f2, 255 * (1 - f1 * f2));
                     }
-                    zat(x,y) = z;
+                    depth(x,y) = z;
                 }
             }
         }
 
-    public: // public utilities
-        depth_t & zat(int x, int y) {
-            return zbuffer[y * width + x];
-        }
-        depth_t const & zat(int x, int y) const {
-            return zbuffer[y * width + x];
-        }
     private: // private utilities
-        pixel_t & pixel(int x, int y) {
-            return RenderTarget[y * width + x];
-        }
-
         real areaOfTris(Vector2 const & a, Vector2 const & b, Vector2 const & c)
         {
             // https://en.wikipedia.org/wiki/Triangle#Using_coordinates

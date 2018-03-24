@@ -3,6 +3,8 @@
 #include "../basic3d/vector2.hpp"
 #include "../basic3d/utils.hpp"
 #include "../basic3d/texture.hpp"
+#include "../basic3d/renderer.hpp"
+#include "../basic3d/zbuffer.hpp"
 #include "../basic3d/image.hpp"
 #include "wall.hpp"
 #include "sprite.hpp"
@@ -14,23 +16,21 @@
 
 namespace Irwin3D
 {
-    template<int width, int height, typename T = Basic3D::real_t>
-    class Renderer
+    template<int WIDTH, int HEIGHT, typename RenderTarget = Basic3D::Image<WIDTH,HEIGHT>, typename ZBuffer = Basic3D::ZBuffer<WIDTH,HEIGHT,uint16_t>, typename real = Basic3D::real_t>
+    class Renderer :
+        public Basic3D::Renderer<WIDTH, HEIGHT, RenderTarget, ZBuffer>
     {
-        typedef Basic3D::Vector2<T> vec2_t;
-        typedef Basic3D::Texture Texture;
-        typedef Basic3D::pixel_t pixel_t;
+        typedef Basic3D::Vector2<real> vec2_t;
+        typedef Basic3D::Texture<pixel_t> Texture;
     private:
-        static constexpr T aspect = T(width) / T(height);
+        static constexpr real aspect = real(width) / real(height);
     private:
-        std::array<T, width> zbuffer;
+        std::array<real, width> zbuffer;
         std::array<vec2_t, width> protorays;
 
     public:
-        pixel_t * RenderTarget;
-
         vec2_t CameraPosition;
-        T CameraRotation;
+        real CameraRotation;
 
         pixel_t CeilingColor;
         pixel_t WallColor;
@@ -40,15 +40,9 @@ namespace Irwin3D
         Texture const * FloorTexture;
 
     public:
-        Renderer(Basic3D::Image<width,height> & target) : Renderer(target.data())
-        {
-
-        }
-
-        explicit Renderer(pixel_t * rt = nullptr) :
-            zbuffer(),
+        explicit Renderer(RenderTarget * renderTarget = nullptr, ZBuffer * zbuffer = nullptr) :
+            Basic3D::Renderer<WIDTH, HEIGHT, RenderTarget, ZBuffer>(renderTarget, zbuffer),
             protorays(),
-            RenderTarget(rt),
             CameraPosition(0,0),
             CameraRotation(0),
             CeilingColor(0x64, 0x95, 0xED),
@@ -59,14 +53,14 @@ namespace Irwin3D
         {
             for(int x = 0; x < width; x++)
             {
-                T fx = aspect * (T(2.0) * (T(x) / T(width - 1)) - T(1.0));
+                real fx = aspect * (real(2.0) * (real(x) / real(width - 1)) - real(1.0));
 
-                T deltaAngle = std::atan(T(0.5) * fx);
+                real deltaAngle = std::atan(real(0.5) * fx);
 
                 protorays[x] = rotate(vec2_t::UnitX, deltaAngle);
 
                 // set length of x to 1 for early correct perspective correction
-                protorays[x] *= (T(1.0) / protorays[x].x);
+                protorays[x] *= (real(1.0) / protorays[x].x);
             }
         }
 
@@ -86,7 +80,7 @@ namespace Irwin3D
                 vec2_t const dir(rotate(protorays[x], this->CameraRotation));
 
                 // Raycast here
-                RaycastResult<T> const * const result = scene.castRay(this->CameraPosition, dir);
+                RaycastResult<pixel_t,real> const * const result = scene.castRay(this->CameraPosition, dir);
 
                 int wallHeight = 0;
                 Texture const * texture = nullptr;
@@ -97,14 +91,14 @@ namespace Irwin3D
 
                     // project the wall height onto the screen and
                     // adjust the zbuffer
-                    wallHeight = int(T(height) / result->distance + T(0.5));
+                    wallHeight = int(real(height) / result->distance + real(0.5));
                     texture = result->wall->texture;
                     zbuffer[x] = result->distance;
                 }
                 else
                 {
                     // no hit means infinite distance
-                    zbuffer[x] = std::numeric_limits<T>::infinity();
+                    zbuffer[x] = std::numeric_limits<real>::infinity();
                 }
 
                 // calculate screen boundaries of the wall
@@ -116,17 +110,17 @@ namespace Irwin3D
                 {
                     for (int y = 0; y < wallTop; y++)
                     {
-                        T const fy = T(1.0) - (T(2.0 / (height - 1)) * (T(y)));
+                        real const fy = real(1.0) - (real(2.0 / (height - 1)) * (real(y)));
 
-                        if(fy == T(0))
+                        if(fy == real(0))
                             continue;
 
-                        T const d = T(1.0) / fy;
+                        real const d = real(1.0) / fy;
 
                         vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int(T(CeilingTexture->width - 1) * Basic3D::fract(pos.x)));
-                        int const v(int(T(CeilingTexture->height - 1) * Basic3D::fract(pos.y)));
+                        int const u(int(real(CeilingTexture->width - 1) * Basic3D::fract(pos.x)));
+                        int const v(int(real(CeilingTexture->height - 1) * Basic3D::fract(pos.y)));
 
                         pixel(x,y) = CeilingTexture->sample(u, v);
                     }
@@ -143,7 +137,7 @@ namespace Irwin3D
                 {
                     for (int y = std::max(0, wallTop); y < maxy; y++)
                     {
-                        int const u = int(T(texture->width - 1) * Basic3D::fract(result->u));
+                        int const u = int(real(texture->width - 1) * Basic3D::fract(result->u));
                         int const v = texture->height * (y - wallTop) / wallHeight;
                         pixel(x,y) = texture->sample(u, v);
                     }
@@ -159,17 +153,17 @@ namespace Irwin3D
                 {
                     for (int y = wallBottom; y < height; y++)
                     {
-                        T const fy = T(1.0 / (height/2)) * T(y - height/2 + 1);
+                        real const fy = real(1.0 / (height/2)) * real(y - height/2 + 1);
 
-                        if(fy == T(0))
+                        if(fy == real(0))
                             continue;
 
-                        T const d = T(1.0) / fy;
+                        real const d = real(1.0) / fy;
 
                         vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int(T(FloorTexture->width - 1) * Basic3D::fract(pos.x)));
-                        int const v(int(T(FloorTexture->height - 1) * Basic3D::fract(pos.y)));
+                        int const u(int(real(FloorTexture->width - 1) * Basic3D::fract(pos.x)));
+                        int const v(int(real(FloorTexture->height - 1) * Basic3D::fract(pos.y)));
 
                         pixel(x,y) = FloorTexture->sample(u, v);
                     }
@@ -185,7 +179,7 @@ namespace Irwin3D
         template<typename SpriteCollection>
         void sortSprites(SpriteCollection & sprites)
         {
-            std::sort(std::begin(sprites), std::end(sprites), [this](Sprite<T> const & a, Sprite<T> const & b) {
+            std::sort(std::begin(sprites), std::end(sprites), [this](Sprite<real> const & a, Sprite<real> const & b) {
                 // "a < b"
                 return distance2(a.position, this->CameraPosition) < distance2(b.position, this->CameraPosition);
             });
@@ -265,11 +259,6 @@ namespace Irwin3D
                     }
                 }
             }
-        }
-
-    private: // private utilities
-        pixel_t & pixel(int x, int y) {
-            return RenderTarget[y * width + x];
         }
     };
 }

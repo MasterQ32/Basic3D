@@ -5,12 +5,13 @@
 
 namespace Violent3D
 {
+    template<typename Pixel = Basic3D::Pixel32>
     struct Material
     {
-        //! Surface color
-        Basic3D::pixel_t Albedo;
+        //! Surface color when no texture is set.
+        Pixel Albedo;
 
-        //! Surface texture (or null)
-        Basic3D::Texture const * Texture;
+        //! Surface texture (or `nullptr` for flat color)
+        Basic3D::Texture<Pixel> const * Texture;
     };
 }
