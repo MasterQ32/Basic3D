@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pixel.hpp"
+#include "pixel32.hpp"
 
 namespace Basic3D
 {

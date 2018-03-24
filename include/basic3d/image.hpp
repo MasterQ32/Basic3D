@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pixel.hpp"
+#include "pixel32.hpp"
 #include "texture.hpp"
 
 #include <array>

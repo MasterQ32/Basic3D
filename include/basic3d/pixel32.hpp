@@ -36,6 +36,11 @@ namespace Basic3D
         Pixel32(Pixel32 const &) = default;
     };
 
+    //! Returns true if the given pixel value is non-transparent.
+    static inline bool alphaTest(Pixel32 const & pixel) {
+        return (pixel.alpha & 0x80);
+    }
+
     static_assert(sizeof(Pixel32)        == 4, "pixel_t must be of size 4!");
     static_assert(sizeof(Pixel32::value) == 4, "pixel_t::value must be of size 4!");
     static_assert(sizeof(Pixel32::red)   == 1, "pixel_t::red must be of size 1!");

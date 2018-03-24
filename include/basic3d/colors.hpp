@@ -5,7 +5,7 @@
 // Thus, this file is licenced under the Creative Commons Attribution-ShareAlike License.
 // avialable here: https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License
 
-#include "pixel.hpp"
+#include "pixel32.hpp"
 
 namespace Basic3D
 {

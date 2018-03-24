@@ -7,7 +7,7 @@
 #include "../basic3d/real.hpp"
 #include "../basic3d/vector2.hpp"
 #include "../basic3d/vector3.hpp"
-#include "../basic3d/pixel.hpp"
+#include "../basic3d/pixel32.hpp"
 #include "../basic3d/texture.hpp"
 #include "../basic3d/renderer.hpp"
 #include "../basic3d/image.hpp"

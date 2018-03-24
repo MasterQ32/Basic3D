@@ -1,6 +1,7 @@
 #include <basic3d.hpp>
 #include <irwin3d.hpp>
 #include <violent3d.hpp>
+#include <fays.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -155,11 +156,63 @@ static void test_rasterizer()
     writeppm("result-rasterizer.ppm", image.data(), WIDTH, HEIGHT);
 }
 
+static void test_spriterender()
+{
+    using namespace Fays;
+
+    Texture<> solidTex = loadtex("floor.png");
+    Texture<> translucentTex = loadtex("alphatest.png");
+    Texture<> bigTex = loadtex("enemy.png");
+
+    Image<WIDTH, HEIGHT> image;
+
+    image.clear(Colors::clDarkBlue);
+
+    auto begin = std::chrono::high_resolution_clock::now();
+
+    Fays::Renderer<WIDTH, HEIGHT> renderer(&image);
+
+    renderer.drawRect(Rect { 10, 10, WIDTH - 20, HEIGHT - 20 }, Colors::clRed);
+    renderer.fillRect(Rect { 12, 12, WIDTH - 24, HEIGHT - 24 }, Colors::clWhite);
+
+    // Draw "L" shape with unscaled
+    renderer.draw(solidTex, 14, 14);
+    renderer.draw(solidTex, 14, 14+32);
+    renderer.draw(solidTex, 14+32, 14+32);
+
+    renderer.draw(translucentTex, 14, 194-32);
+    renderer.draw(translucentTex, 14, 194);
+    renderer.draw(translucentTex, 14+32, 194);
+
+    renderer.draw(solidTex, Rect { 266, 14, 40, 40 });
+    renderer.draw(solidTex, Rect { 266, 54, 40, 40 });
+    renderer.draw(solidTex, Rect { 226, 54, 40, 40 });
+
+    renderer.draw(translucentTex, Rect { 266, 146, 40, 40 });
+    renderer.draw(translucentTex, Rect { 266, 186, 40, 40 });
+    renderer.draw(translucentTex, Rect { 226, 186, 40, 40 });
+
+    // Draw a cross through the bounding rectangle
+    // note the adjusted start/end point!
+    renderer.drawLine(120, 40,  199, 199, Colors::clMagenta);
+    renderer.drawLine(120, 199, 199, 40, Colors::clCyan);
+
+    renderer.draw(bigTex, Rect { 160 - 40, 120 - 80, 80, 160 } );
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "sprite renderer time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " us" << std::endl;
+
+    writeppm("result-sprites.ppm", image.data(), WIDTH, HEIGHT);
+}
+
 int _main()
 {
     test_raycaster();
 
     test_rasterizer();
+
+    test_spriterender();
 
     return 0;
 }
@@ -244,6 +297,7 @@ void initFrame(Screen &screen)
 {
     test_rasterizer();
     test_raycaster();
+    test_spriterender();
 
     screen.clear(Colors::clBlue);
 
@@ -269,24 +323,12 @@ void initFrame(Screen &screen)
     renderer = &ren;
 }
 
-template<typename real>
-static Basic3D::Vector3<real> transform(Basic3D::Vector3<real> vec, std::array<real, 16> const & matrix)
-{
-    real x = vec.x * matrix[ 0] + vec.y * matrix[ 4] + vec.z * matrix[ 8] + matrix[12];
-    real y = vec.x * matrix[ 1] + vec.y * matrix[ 5] + vec.z * matrix[ 9] + matrix[13];
-    real z = vec.x * matrix[ 2] + vec.y * matrix[ 6] + vec.z * matrix[10] + matrix[14];
-    real w = vec.x * matrix[ 3] + vec.y * matrix[ 7] + vec.z * matrix[11] + matrix[15];
-
-    return Basic3D::Vector3<real>(x / w, y / w, z / w);
-}
-
-static std::array<real_t, 16> matrix =
+static Basic3D::Matrix4<> matrix =
 {
     -0.4552882, -0.3561772, -0.9138938, -0.9137153,
     0, 1.689785, -0.219609, -0.2195661,
     -1.21664, 0.1332879, 0.3419953, 0.3419285,
     -0.9931068, -3.696177, 5.849844, 6.048681,
-
 };
 
 template<typename T1, typename T2, int sizeA, int sizeB>
@@ -297,7 +339,7 @@ static void drawModel(
     static std::array<Violent3D::Vertex<>, sizeA> transformed;
     for(int i = 0; i < vertices.size(); i++)
     {
-        transformed[i].pos = transform(vertices[i].pos, matrix);
+        transformed[i].pos = Basic3D::transformPerspective(vertices[i].pos, matrix);
         transformed[i].uv = vertices[i].uv;
         transformed[i].pos.x *= (screenSize_X / 2);
         transformed[i].pos.y *= -(screenSize_Y / 2);

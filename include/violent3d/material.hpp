@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../basic3d/texture.hpp"
-#include "../basic3d/pixel.hpp"
+#include "../basic3d/pixel32.hpp"
 
 namespace Violent3D
 {
