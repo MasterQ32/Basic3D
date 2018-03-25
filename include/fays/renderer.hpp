@@ -36,7 +36,7 @@ namespace Fays
 
     public:
         //! draws a line
-        void drawLine(int x0, int y0, int x1, int y1, pixel_t color)
+        void drawLine(pixel_t color, int x0, int y0, int x1, int y1)
         {
             // TODO: Adjust with clipping and culling!
 
@@ -69,7 +69,7 @@ namespace Fays
         }
 
         //! draws a rectangle frame
-        void drawRect(Rect const & rect, pixel_t color)
+        void drawRect(pixel_t color, Rect const & rect)
         {
             if(cull(rect.x, rect.y, rect.width, rect.height))
                 return;
@@ -101,7 +101,7 @@ namespace Fays
 
 
         //! draws a scaled sprite
-        void fillRect(Rect const & rect, pixel_t color)
+        void fillRect(pixel_t color, Rect const & rect)
         {
             if(cull(rect.x, rect.y, rect.width, rect.height))
                 return;
@@ -113,6 +113,30 @@ namespace Fays
                 for(int x = clip.left; x < clip.right; x++)
                 {
                     pixel(x, y) = color;
+                }
+            }
+        }
+
+
+        //! fills a rectangle with a texture pattern.
+        //! @param dx x-offset of the texture pattern in screen coordinates
+        //! @param dy y-offset of the texture pattern in screen coordinates
+        void fillRect(Texture const & pattern, Rect const & rect, unsigned dx = 0, unsigned dy = 0)
+        {
+            if(cull(rect.x, rect.y, rect.width, rect.height))
+                return;
+
+            ClipRect const clip = clipRect(rect.x, rect.y, rect.width, rect.height);
+
+            for(int y = clip.top; y < clip.bottom; y++)
+            {
+                for(int x = clip.left; x < clip.right; x++)
+                {
+                    auto color = pattern.at(
+                        (x + dx) % pattern.width,
+                        (y + dy) % pattern.height);
+                    if(Basic3D::alphaTest(color))
+                        pixel(x, y) = color;
                 }
             }
         }
@@ -214,6 +238,48 @@ namespace Fays
                     if(writeZ)
                         depth(sx, sy) = z;
                 }
+            }
+        }
+
+        //! Draws a string with the given font
+        template<typename Font>
+        void drawString(char const * const text, Font const & font, int const x, int const y, unsigned const tabWidth = 40)
+        {
+            if((x >= width) || (y >= height))
+                return;
+            char const * c = text;
+            int cx = x;
+            int cy = y;
+            while(*c != '\0')
+            {
+                switch(*c)
+                {
+                case '\n': // LF is interpreted LF, CR
+                    cy += font.size;
+                    cx = 0;
+                    if(cy >= height) // out of screen, don't draw anymore
+                        return;
+                    break;
+                case '\t':
+                    // tab width is 40
+                    cx = (cx + tabWidth - 1) % tabWidth;
+                    break;
+                case '\r': // CR is ignored
+                    break;
+                case '\0':
+                    return;
+                default:
+                    if(cx < width) // if we can draw the character, do so
+                    {
+                        int advance = 0;
+                        auto tex = font.GetGlyph(*c, &advance);
+                        if(tex != nullptr)
+                            this->draw(*tex, cx, cy);
+                        cx += advance;
+                    }
+                    break;
+                }
+                c++;
             }
         }
 

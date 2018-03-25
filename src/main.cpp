@@ -156,13 +156,57 @@ static void test_rasterizer()
     writeppm("result-rasterizer.ppm", image.data(), WIDTH, HEIGHT);
 }
 
+struct BitmapFont
+{
+    Texture<> * texture;
+    int cx;
+    int size;
+
+    struct TexturePointer
+    {
+        BitmapFont const * font;
+        uint16_t c;
+        Texture<> operator *()
+        {
+            return Texture<>(
+                font->texture->data + font->texture->width * (font->size * (c / 16)) + font->cx * (c % 16),
+                font->cx,
+                        font->size,
+                16 * font->cx);
+        }
+
+        bool operator ==(std::nullptr_t)
+        {
+            return (font == nullptr);
+        }
+
+        bool operator !=(std::nullptr_t)
+        {
+            return (font != nullptr);
+        }
+    };
+
+    TexturePointer GetGlyph(uint16_t c, int * advance) const
+    {
+        if(c >= 128)
+            return TexturePointer { nullptr, 0 };
+        if(advance != nullptr)
+            *advance = cx;
+        return TexturePointer { this, c };
+    }
+};
+
 static void test_spriterender()
 {
     using namespace Fays;
 
-    Texture<> solidTex = loadtex("floor.png");
+    Texture<> solidTex = loadtex("debug.png");
+    Texture<> patternTex = loadtex("wall.png");
     Texture<> translucentTex = loadtex("alphatest.png");
     Texture<> bigTex = loadtex("enemy.png");
+    Texture<> fontTex = loadtex("courier-11.png");
+
+    BitmapFont font { &fontTex, 8, 11 };
 
     Image<WIDTH, HEIGHT> image;
 
@@ -172,8 +216,11 @@ static void test_spriterender()
 
     Fays::Renderer<WIDTH, HEIGHT> renderer(&image);
 
-    renderer.drawRect(Rect { 10, 10, WIDTH - 20, HEIGHT - 20 }, Colors::clRed);
-    renderer.fillRect(Rect { 12, 12, WIDTH - 24, HEIGHT - 24 }, Colors::clWhite);
+    renderer.drawRect(Colors::clRed, Rect { 10, 10, WIDTH - 20, HEIGHT - 20 });
+
+    renderer.fillRect(Colors::clWhite, Rect { 12, 12, WIDTH - 24, HEIGHT - 24 });
+
+    renderer.fillRect(patternTex, Rect { 14, 14, WIDTH - 28, HEIGHT - 28 });
 
     // Draw "L" shape with unscaled
     renderer.draw(solidTex, 14, 14);
@@ -194,10 +241,16 @@ static void test_spriterender()
 
     // Draw a cross through the bounding rectangle
     // note the adjusted start/end point!
-    renderer.drawLine(120, 40,  199, 199, Colors::clMagenta);
-    renderer.drawLine(120, 199, 199, 40, Colors::clCyan);
+    renderer.drawLine(Colors::clMagenta, 120, 40,  199, 199);
+    renderer.drawLine(Colors::clCyan, 120, 199, 199, 40);
 
     renderer.draw(bigTex, Rect { 160 - 40, 120 - 80, 80, 160 } );
+
+    renderer.drawString(
+        "Hello, World!",
+        font,
+        16,
+        (240 - font.size) / 2);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -325,10 +378,10 @@ void initFrame(Screen &screen)
 
 static Basic3D::Matrix4<> matrix =
 {
-    -0.4552882, -0.3561772, -0.9138938, -0.9137153,
-    0, 1.689785, -0.219609, -0.2195661,
-    -1.21664, 0.1332879, 0.3419953, 0.3419285,
-    -0.9931068, -3.696177, 5.849844, 6.048681,
+    -0.4552882f, -0.3561772f, -0.9138938f, -0.9137153f,
+    0.0f, 1.689785f, -0.219609f, -0.2195661f,
+    -1.21664f, 0.1332879f, 0.3419953f, 0.3419285f,
+    -0.9931068f, -3.696177f, 5.849844f, 6.048681f,
 };
 
 template<typename T1, typename T2, int sizeA, int sizeB>
