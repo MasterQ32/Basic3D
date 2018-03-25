@@ -56,6 +56,18 @@ namespace Violent3D
             Point const p2 = vertexToPoint(v2);
             Point const p3 = vertexToPoint(v3);
 
+            if((p1.x < 0) && (p2.x < 0) && (p3.x < 0))
+                return;
+
+            if((p1.x >= width) && (p2.x >= width) && (p3.x >= width))
+                return;
+
+            if((v1.pos.z < MinZ) && (v2.pos.z < MinZ) && (v3.pos.z < MinZ))
+                return;
+
+            if((v1.pos.z >= MaxZ) && (v2.pos.z >= MaxZ) && (v3.pos.z >= MaxZ))
+                return;
+
             std::array<Point const *,3> plist = { &p1, &p2, &p3 };
             {
                 // apply sorting network for 3 elements
@@ -73,6 +85,9 @@ namespace Violent3D
             Point const & pt = *plist[0];
             Point const & pm = *plist[1];
             Point const & pb = *plist[2];
+
+            if((pb.y < 0) || (pt.y >= height))
+                return;
 
             assert(&pt != &pb);
             assert(&pb != &pm);
