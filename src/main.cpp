@@ -516,6 +516,20 @@ void initFrame(Screen &screen)
     renderer = &ren;
 }
 
+/*
+    var matView = Matrix4.LookAt(
+        new Vector3(4.82f, 3.41f, -2.62f),
+        new Vector3(-3.17f, 1.49f, 0.37f),
+        new Vector3(0, 1, 0));
+    var matProj = Matrix4.CreatePerspectiveFieldOfView(
+        MathHelper.DegreesToRadians(60),
+        320.0f / 240.0f,
+        0.1f,
+        1024.0f);
+
+    var mat = matView * matProj;
+*/
+
 static Basic3D::Matrix4<> matrix =
 {
     -0.4552882f, -0.3561772f, -0.9138938f, -0.9137153f,

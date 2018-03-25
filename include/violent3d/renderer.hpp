@@ -116,15 +116,19 @@ namespace Violent3D
                 Vector2 fp0(real(pt.x), real(pt.y));
                 Vector2 fp1(real(pt.x), real(pt.y));
 
-                Point p;
-                for(p.y = pt.y; p.y < pm.y; p.y++)
-                {
-                    for(p.x = int(fp0.x); p.x <= int(fp1.x); p.x++)
-                    {
-                        // TODO: Implement improved culling
-                        if(p.x < 0 || p.y < 0 || p.x >= width || p.y >= height)
-                            continue;
+                int const top = std::max(pt.y, 0);
+                int const bottom = std::min(pm.y, HEIGHT - 1);
 
+                fp0 += real(top - pt.y) * f0;
+                fp1 += real(top - pt.y) * f1;
+
+                Point p;
+                for(p.y = top; p.y <= bottom; p.y++)
+                {
+                    int const left = std::max(int(fp0.x), 0);
+                    int const right = std::min(int(fp1.x), width - 1);
+                    for(p.x = left; p.x <= right; p.x++)
+                    {
                         real const a12 = areaOfTris(p1, p2, p);
                         real const a23 = areaOfTris(p2, p3, p);
                         real const a31 = areaOfTris(p3, p1, p);
@@ -151,15 +155,19 @@ namespace Violent3D
                 Vector2 const f0(real(fp0.x - pb.x) / fdy, real(1.0));
                 Vector2 const f1(real(fp1.x - pb.x) / fdy, real(1.0));
 
-                Point p;
-                for(p.y = pm.y; p.y < pb.y; p.y++)
-                {
-                    for(p.x = int(fp0.x); p.x <= int(fp1.x); p.x++)
-                    {
-                        // TODO: Implement improved culling
-                        if(p.x < 0 || p.y < 0 || p.x >= width || p.y >= height)
-                            continue;
+                int const top = std::max(pm.y, 0);
+                int const bottom = std::min(pb.y, HEIGHT - 1);
 
+                fp0 += real(top - pm.y) * f0;
+                fp1 += real(top - pm.y) * f1;
+
+                Point p;
+                for(p.y = top; p.y <= bottom; p.y++)
+                {
+                    int const left = std::max(int(fp0.x), 0);
+                    int const right = std::min(int(fp1.x), width - 1);
+                    for(p.x = left; p.x <= right; p.x++)
+                    {
                         real const a12 = areaOfTris(p1, p2, p);
                         real const a23 = areaOfTris(p2, p3, p);
                         real const a31 = areaOfTris(p3, p1, p);
