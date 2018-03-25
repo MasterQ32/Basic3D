@@ -113,41 +113,44 @@ static void test_rasterizer()
     using namespace Violent3D;
 
     Image<WIDTH, HEIGHT> image;
-
     image.clear(Colors::clDarkBlue);
+
+    ZBuffer<WIDTH, HEIGHT> zbuffer;
+    zbuffer.clear();
 
     Texture<> floorTex = loadtex("floor.png");
     Texture<> ceilingTex = loadtex("ceiling.png");
     Texture<> wallTex = loadtex("wall.png");
     Texture<> enemyTex = loadtex("enemy.png");
 
-    Material<Pixel32> mtlWhite = { Pixel32(0xFF, 0xFF, 0xFF), &enemyTex };
+    TextureShader<Pixel32,fixed> mtlWhite = { &enemyTex };
+
+    fixed const size = 48;
 
     std::array<Vertex<fixed>, 4> vertices
     {
-        Vertex<fixed> { Vector3<fixed>(16, 16, 0.5), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(16, 48, 0.5), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(48, 16, 0.5), Vector2<fixed>(1, 0) },
-        Vertex<fixed> { Vector3<fixed>(48, 48, 0.5), Vector2<fixed>(1, 1) },
+        Vertex<fixed> { Vector3<fixed>(-size, -size, 0.5), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-size,  size, 0.5), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( size, -size, 0.5), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>( size,  size, 0.5), Vector2<fixed>(1, 1) },
     };
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    Violent3D::Renderer<WIDTH, HEIGHT> renderer(&image);
+    Violent3D::Renderer<WIDTH, HEIGHT> renderer(&image, &zbuffer);
 
-    renderer.Material = &mtlWhite;
 
-    renderer.drawTriangle(vertices[0], vertices[1], vertices[2]);
-    renderer.drawTriangle(vertices[2], vertices[1], vertices[3]);
+    renderer.drawTriangle(mtlWhite, vertices[0], vertices[1], vertices[2]);
+    renderer.drawTriangle(mtlWhite, vertices[2], vertices[1], vertices[3]);
 
-    mtlWhite.Texture = &wallTex;
-    vertices[0].pos.z = 1.0;
+    mtlWhite.texture = &wallTex;
+    vertices[0].pos.z = 0.0;
     vertices[1].pos.z = 0.0;
-    vertices[2].pos.z = 0.0;
+    vertices[2].pos.z = 1.0;
     vertices[3].pos.z = 1.0;
 
-    renderer.drawTriangle(vertices[0], vertices[1], vertices[2]);
-    renderer.drawTriangle(vertices[2], vertices[1], vertices[3]);
+    renderer.drawTriangle(mtlWhite, vertices[0], vertices[1], vertices[2]);
+    renderer.drawTriangle(mtlWhite, vertices[2], vertices[1], vertices[3]);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -272,6 +275,147 @@ int _main()
 
 #include "common.h"
 
+// #define LIVE
+
+namespace stats
+{
+    using namespace std::chrono;
+
+    static uint64_t meanTime;
+    static uint64_t counter;
+
+    static high_resolution_clock::time_point startpoint, endpoint;
+
+    static void begin()
+    {
+        startpoint = std::chrono::high_resolution_clock::now();
+    }
+
+    static void end(char const * what = "???")
+    {
+        endpoint = std::chrono::high_resolution_clock::now();
+
+        auto count = std::chrono::duration_cast<std::chrono::microseconds>(endpoint - startpoint).count();
+
+        meanTime += count;
+        counter ++;
+
+        std::cout << what
+                  << " time: "
+                  << count
+                  << " us / mean: "
+                  << (meanTime / counter)
+                  << " us"
+                  << std::endl;
+    }
+}
+
+#ifndef LIVE
+
+Texture<> * texlive;
+
+void initFrame(Screen &screen)
+{
+    using namespace Violent3D;
+
+    screen.clear(Colors::clDimGray);
+
+    ZBuffer<screen.width, screen.height> zbuffer;
+    zbuffer.clear();
+
+    static Texture<> floorTex = loadtex("floor.png");
+    Texture<> ceilingTex = loadtex("ceiling.png");
+    Texture<> wallTex = loadtex("wall.png");
+    Texture<> enemyTex = loadtex("enemy.png");
+
+    texlive = &floorTex;
+
+    fixed constexpr sizeX = 48;
+    fixed constexpr sizeY = 90;
+
+    std::array<Vertex<fixed>, 4> vertices
+    {
+        Vertex<fixed> { Vector3<fixed>(-sizeX, -sizeY, 0.5), Vector2<fixed>(0, 0) },
+        Vertex<fixed> { Vector3<fixed>(-sizeX,  sizeY, 0.5), Vector2<fixed>(0, 1) },
+        Vertex<fixed> { Vector3<fixed>( sizeX, -sizeY, 0.5), Vector2<fixed>(1, 0) },
+        Vertex<fixed> { Vector3<fixed>( sizeX,  sizeY, 0.5), Vector2<fixed>(1, 1) },
+    };
+    for(int i = 0; i < vertices.size(); i++)
+    {
+        vertices[i].pos.x += screen.width / 2;
+        vertices[i].pos.y += screen.height / 2;
+    }
+
+    Violent3D::Renderer<screen.width, screen.height> renderer(&screen, &zbuffer);
+
+    float angle = 0.0f;
+    Vertex<> v[3];
+    v[0].uv = Vector2<>(0.0, 0.0);
+    v[1].uv = Vector2<>(1.0, 0.0);
+    v[2].uv = Vector2<>(0.5, 1.0);
+    for(int y = 0; y < 7; y++)
+    {
+        for(int x = 0; x < 10; x++)
+        {
+            int const cx = 16 + 32 * x - WIDTH / 2;
+            int const cy = 16 + 32 * y - HEIGHT / 2;
+
+            for(int i = 0; i < 3; i++)
+            {
+                v[i].pos.x = cx + 12 * std::cos(angle + radians(120.0f * i));
+                v[i].pos.y = cy + 12 * std::sin(angle + radians(120.0f * i));
+                v[i].pos.z = 0.5;
+            }
+
+            renderer.drawTriangle(TextureCoordShader<> { }, v[0], v[1], v[2]);
+
+            angle += radians(15.0f);
+        }
+    }
+
+
+    writeppm("result-newgen.ppm", screen.data(), screen.width, screen.height);
+}
+
+int ticks = 0;
+
+void renderFrame(Screen &screen)
+{
+    if(ticks++ < 60)
+        return;
+
+    using namespace Violent3D;
+
+    ZBuffer<screen.width, screen.height> zbuffer;
+    zbuffer.clear();
+
+    Violent3D::Renderer<screen.width, screen.height> renderer(&screen, &zbuffer);
+
+    screen.clear(Colors::clDimGray);
+
+    Vertex<> v[3];
+    for(int i = 0; i < 3; i++)
+    {
+        v[i].pos.x = 80.0f * std::cos(radians(1.0f * ticks + 120.0f * i));
+        v[i].pos.y = 80.0f * std::sin(radians(1.0f * ticks + 120.0f * i));
+        v[i].pos.z = 0.5f;
+    }
+    v[0].uv = Vector2<>(0.0, 0.0);
+    v[1].uv = Vector2<>(1.0, 0.0);
+    v[2].uv = Vector2<>(0.5, 1.0);
+
+    stats::begin();
+    auto begin = std::chrono::high_resolution_clock::now();
+
+    renderer.drawTriangle(TextureShader<> { ::texlive }, v[0], v[1], v[2]);
+
+    stats::end("triangle");
+}
+
+
+
+#else
+
 namespace Live
 {
     using namespace Basic3D;
@@ -281,7 +425,7 @@ namespace Live
 
     Violent3D::Renderer<screenSize_X, screenSize_Y> * renderer;
 
-    Material<Pixel32> * mtl[3];
+    TextureShader<Pixel32> mtl[3];
 
     ZBuffer<screenSize_X, screenSize_Y> zbuffer;
 
@@ -360,13 +504,9 @@ void initFrame(Screen &screen)
     static Texture<> ceilingTex = loadtex("sky.png");
     static Texture<> wallTex = loadtex("wall.png");
 
-    static Material<Pixel32> mtl0 = { Pixel32(0xFF, 0xFF, 0xFF), &floorTex };
-    static Material<Pixel32> mtl1 = { Pixel32(0xFF, 0xFF, 0xFF), &ceilingTex };
-    static Material<Pixel32> mtl2 = { Pixel32(0xFF, 0xFF, 0xFF), &wallTex };
-
-    mtl[0] = &mtl0;
-    mtl[1] = &mtl1;
-    mtl[2] = &mtl2;
+    mtl[0].texture = &floorTex;
+    mtl[1].texture = &ceilingTex;
+    mtl[2].texture = &wallTex;
 
     static Violent3D::Renderer<WIDTH, HEIGHT> ren;
     ren.MinZ = -80;
@@ -384,8 +524,9 @@ static Basic3D::Matrix4<> matrix =
     -0.9931068f, -3.696177f, 5.849844f, 6.048681f,
 };
 
-template<typename T1, typename T2, int sizeA, int sizeB>
+template<typename Shader, typename T1, typename T2, int sizeA, int sizeB>
 static void drawModel(
+    Shader const & shader,
     std::array<Violent3D::Vertex<T1>,sizeA> const & vertices,
     std::array<T2,sizeB> const & indices)
 {
@@ -394,56 +535,35 @@ static void drawModel(
     {
         transformed[i].pos = Basic3D::transformPerspective(vertices[i].pos, matrix);
         transformed[i].uv = vertices[i].uv;
+
         transformed[i].pos.x *= (screenSize_X / 2);
         transformed[i].pos.y *= -(screenSize_Y / 2);
     }
 
     for(int i = 0; i < indices.size(); i += 3)
-        Live::renderer->drawTriangle(transformed[indices[i+0]], transformed[indices[i+1]], transformed[indices[i+2]]);
+        Live::renderer->drawTriangle(shader, transformed[indices[i+0]], transformed[indices[i+1]], transformed[indices[i+2]]);
 }
+
+
+uint64_t meanTime;
+uint64_t counter;
 
 void renderFrame(Screen &screen)
 {
     using namespace Live;
 
-    /*
-    angle += 0.01f;
-    for(int i = 0; i < terrain::vertices.size(); i++)
-    {
-        auto & v = vertices[i];
-
-        auto xy = rotate(Vector2<>(v.pos.x, v.pos.y), 0.01f);
-        v.pos.x = xy.x;
-        v.pos.y = xy.y;
-
-        auto xz = rotate(Vector2<>(v.pos.x, v.pos.z), 0.015f);
-        v.pos.x = xz.x;
-        v.pos.z = xz.y;
-
-        auto yz = rotate(Vector2<>(v.pos.y, v.pos.z), 0.020f);
-        v.pos.y = yz.x;
-        v.pos.z = yz.y;
-    }
-    */
-
     renderer->setRenderTarget(&screen);
-
-    auto begin = std::chrono::high_resolution_clock::now();
 
     zbuffer.clear();
     screen.clear(0x58, 0x7c, 0xef);
 
-    renderer->Material = mtl[0];
-    drawModel(terrain::vertices, terrain::indices);
+    stats::begin();
 
-    renderer->Material = mtl[1];
-    drawModel(skydome::vertices, skydome::indices);
+    drawModel(mtl[0], terrain::vertices, terrain::indices);
 
+    drawModel(mtl[1], skydome::vertices, skydome::indices);
 
-
-    auto end = std::chrono::high_resolution_clock::now();
-
-    std::cout << "rasterizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " us" << std::endl;
-
+    stats::end("rasterizer");
 }
 
+#endif

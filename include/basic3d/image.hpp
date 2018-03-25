@@ -13,6 +13,8 @@ namespace Basic3D
     {
     public:
         typedef Pixel pixel_t;
+        static constexpr int width  = WIDTH;
+        static constexpr int height = HEIGHT;
     private:
         std::array<pixel_t, WIDTH * HEIGHT> pixels;
     public:

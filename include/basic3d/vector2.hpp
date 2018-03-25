@@ -25,6 +25,18 @@ namespace Basic3D
             return *this;
         }
 
+        Vector2 & operator += (Vector2 const & other) {
+            this->x += other.x;
+            this->y += other.y;
+            return *this;
+        }
+
+        Vector2 & operator -= (Vector2 const & other) {
+            this->x -= other.x;
+            this->y -= other.y;
+            return *this;
+        }
+
         static const Vector2<T> Zero;
         static const Vector2<T> UnitX;
         static const Vector2<T> UnitY;
