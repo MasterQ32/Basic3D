@@ -86,6 +86,8 @@ namespace Violent3D
                     real const f2 = a31 / total;
 
                     real fz = f1 * v1.pos.z + f2 * v2.pos.z + f3 * v3.pos.z;
+
+                    // front- and backplane clipping
                     if((fz < MinZ) || (fz >= MaxZ))
                         continue;
 
