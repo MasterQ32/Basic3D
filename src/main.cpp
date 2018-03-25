@@ -275,7 +275,7 @@ int _main()
 
 #include "common.h"
 
-// #define LIVE
+#define LIVE
 
 namespace stats
 {

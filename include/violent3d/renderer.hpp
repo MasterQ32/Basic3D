@@ -49,15 +49,6 @@ namespace Violent3D
         }
 
     public:
-        Point vertexToPoint(Vertex const & v)
-        {
-            // return Point { int(v.pos.x), int(v.pos.y) };
-            return Point {
-                int(v.pos.x + halfWidth  + 0.5),
-                int(v.pos.y + halfHeight + 0.5)
-            };
-        }
-
         template<typename Shader>
         void drawTriangle(Shader const & shader, Vertex const & v1, Vertex const & v2, Vertex const & v3)
         {
@@ -65,13 +56,23 @@ namespace Violent3D
             Point const p2 = vertexToPoint(v2);
             Point const p3 = vertexToPoint(v3);
 
+            std::array<Point const *,3> plist = { &p1, &p2, &p3 };
+            {
+                // apply sorting network for 3 elements
+                // http://www.angelfire.com/blog/ronz/Articles/999SortingNetworksReferen.html
+                if(plist[0]->y > plist[1]->y)
+                    std::swap(plist[0], plist[1]);
+                if(plist[1]->y > plist[2]->y)
+                    std::swap(plist[1], plist[2]);
+                if(plist[0]->y > plist[1]->y)
+                    std::swap(plist[0], plist[1]);
+            }
+
             // this is horrible, but:
             // it sorts the vertices top(vt), to bottom(vb) with a middle point (vm)
-            Point const & pt = ((p1.y <= p2.y) && (p1.y <= p3.y)) ? p1 : ((p2.y <= p3.y) ? p2 : p3);
-            Point const & pb = ((p1.y >  p2.y) && (p1.y >  p3.y)) ? p1 : ((p2.y >  p3.y) ? p2 : p3);
-            Point const & pm = (((&pt == &p1) && (&pb == &p3)) || ((&pt == &p3) && (&pb == &p1))) ? p2 :
-                (((&pt == &p2) && (&pb == &p3)) || ((&pt == &p3) && (&pb == &p2))) ? p1 :
-                p3;
+            Point const & pt = *plist[0];
+            Point const & pm = *plist[1];
+            Point const & pb = *plist[2];
 
             assert(&pt != &pb);
             assert(&pb != &pm);
@@ -206,6 +207,16 @@ namespace Violent3D
             depth(p.x,p.y) = z;
         }
 
+        //! Converts a vertex into an integer screen point
+        Point vertexToPoint(Vertex const & v)
+        {
+            return Point {
+                int(v.pos.x + halfWidth  + 0.5),
+                int(v.pos.y + halfHeight + 0.5)
+            };
+        }
+
+        //! Calculate the 2D area of given triangle
         template<typename T1, typename T2, typename T3>
         real areaOfTris(T1 const & a, T2 const & b, T3 const & c)
         {
