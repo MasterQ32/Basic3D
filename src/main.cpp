@@ -8,6 +8,10 @@
 #include <memory>
 #include <chrono>
 
+// use glm for demo stuff, not required for Basic3D api
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 // we use this only in here
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -281,8 +285,10 @@ namespace stats
 {
     using namespace std::chrono;
 
-    static uint64_t meanTime;
-    static uint64_t counter;
+    static int64_t meanTime = 0;
+    static int64_t minTime = std::numeric_limits<int64_t>::max();
+    static int64_t maxTime = std::numeric_limits<int64_t>::min();
+    static int64_t counter = 0;
 
     static high_resolution_clock::time_point startpoint, endpoint;
 
@@ -297,14 +303,20 @@ namespace stats
 
         auto count = std::chrono::duration_cast<std::chrono::microseconds>(endpoint - startpoint).count();
 
+        minTime = std::min(minTime, count);
+        maxTime = std::max(maxTime, count);
         meanTime += count;
         counter ++;
 
         std::cout << what
                   << " time: "
                   << count
+                  << " us / min: "
+                  << minTime
                   << " us / mean: "
                   << (meanTime / counter)
+                  << " us / max: "
+                  << maxTime
                   << " us"
                   << std::endl;
     }
@@ -509,8 +521,7 @@ void initFrame(Screen &screen)
     mtl[2].texture = &wallTex;
 
     static Violent3D::Renderer<WIDTH, HEIGHT> ren;
-    ren.MinZ = -80;
-    ren.MaxZ =  80;
+    ren.setZRange(-80, 80);
     ren.setZBuffer(&zbuffer);
 
     renderer = &ren;
@@ -558,13 +569,34 @@ static void drawModel(
         Live::renderer->drawTriangle(shader, transformed[indices[i+0]], transformed[indices[i+1]], transformed[indices[i+2]]);
 }
 
-
-uint64_t meanTime;
-uint64_t counter;
-
-void renderFrame(Screen &screen)
+void renderFrame(Screen &screen, int frameNum)
 {
     using namespace Live;
+
+    { // Setup Matrix
+
+        float slide = 2.0f * std::sin(0.02f * frameNum);
+
+        glm::vec3 camPos(4.82f, 3.41f, -2.62f + slide);
+        glm::vec3 camTarget(-3.17f, 1.49f, 0.37f - slide);
+
+        auto matView =glm::lookAt(
+            camPos,
+            camTarget,
+            glm::vec3(0, 1, 0));
+        auto matProj = glm::perspectiveFov(
+            glm::radians(60.0f),
+            320.0f, 240.0f,
+            0.1f,
+            1024.0f);
+
+        auto mat =  matProj * matView;
+        for(int i = 0; i < 4; i++) {
+            for(int j = 0; j < 4; j++) {
+                matrix.v[i][j] = mat[i][j];
+            }
+        }
+    }
 
     renderer->setRenderTarget(&screen);
 

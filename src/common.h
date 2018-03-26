@@ -9,4 +9,4 @@ using Screen = Basic3D::Image<screenSize_X, screenSize_Y>;
 
 extern void initFrame(Screen & screen);
 
-extern void renderFrame(Screen & screen);
+extern void renderFrame(Screen & screen, int frameNum);

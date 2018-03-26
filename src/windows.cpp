@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
 
     initFrame(screen);
 
+    int framecounter = 0;
+
     while(true)
     {
         SDL_Event e;
@@ -32,7 +34,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        renderFrame(screen);
+        renderFrame(screen, framecounter++);
 
         SDL_LockSurface(surf);
 

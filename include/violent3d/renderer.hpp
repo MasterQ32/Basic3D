@@ -29,14 +29,16 @@ namespace Violent3D
 
         static constexpr int halfWidth = WIDTH / 2;
         static constexpr int halfHeight = HEIGHT / 2;
-    public:
-        real MinZ;
-        real MaxZ;
+    private:
+        real minZ;
+        real maxZ;
+        real invScaleZ;
     public:
         explicit Renderer(RenderTarget * target = nullptr, ZBuffer * zbuffer = nullptr) :
             Basic3D::Renderer<WIDTH, HEIGHT, RenderTarget, ZBuffer>(target, zbuffer),
-            MinZ(0),
-            MaxZ(1)
+            minZ(0),
+            maxZ(1),
+            invScaleZ(1)
         {
 
         }
@@ -46,6 +48,14 @@ namespace Violent3D
 
         ~Renderer()
         {
+        }
+
+        void setZRange(real min, real max)
+        {
+            assert(max > min);
+            this->minZ = min;
+            this->maxZ = max;
+            this->invScaleZ = real(1) / (max - min);
         }
 
     public:
@@ -62,10 +72,10 @@ namespace Violent3D
             if((p1.x >= width) && (p2.x >= width) && (p3.x >= width))
                 return;
 
-            if((v1.pos.z < MinZ) && (v2.pos.z < MinZ) && (v3.pos.z < MinZ))
+            if((v1.pos.z < this->minZ) && (v2.pos.z < this->minZ) && (v3.pos.z < this->minZ))
                 return;
 
-            if((v1.pos.z >= MaxZ) && (v2.pos.z >= MaxZ) && (v3.pos.z >= MaxZ))
+            if((v1.pos.z >= this->maxZ) && (v2.pos.z >= this->maxZ) && (v3.pos.z >= this->maxZ))
                 return;
 
             std::array<Point const *,3> plist = { &p1, &p2, &p3 };
@@ -102,19 +112,19 @@ namespace Violent3D
                 pm.y
             };
 
-            real const totalArea = areaOfTris(p1, p2, p3);
+            real const invTotalArea = real(1) / areaOfTris(p1, p2, p3);
 
             if(pt.y != pm.y) // Draw upper half
             {
                 assert(pt.y < pm.y);
 
-                real const fdy(real(pm.y - pt.y));
+                real const invfdy(real(1) / real(pm.y - pt.y));
 
-                Vector2 const f0(real(std::min(pm.x, ps.x) - pt.x) / fdy, real(1.0));
-                Vector2 const f1(real(std::max(pm.x, ps.x) - pt.x) / fdy, real(1.0));
+                real const f0(real(std::min(pm.x, ps.x) - pt.x) * invfdy);
+                real const f1(real(std::max(pm.x, ps.x) - pt.x) * invfdy);
 
-                Vector2 fp0(real(pt.x), real(pt.y));
-                Vector2 fp1(real(pt.x), real(pt.y));
+                real fp0(pt.x);
+                real fp1(pt.x);
 
                 int const top = std::max(pt.y, 0);
                 int const bottom = std::min(pm.y, HEIGHT - 1);
@@ -125,17 +135,17 @@ namespace Violent3D
                 Point p;
                 for(p.y = top; p.y <= bottom; p.y++)
                 {
-                    int const left = std::max(int(fp0.x), 0);
-                    int const right = std::min(int(fp1.x), width - 1);
+                    int const left = std::max(int(fp0), 0);
+                    int const right = std::min(int(fp1), width - 1);
                     for(p.x = left; p.x <= right; p.x++)
                     {
                         real const a12 = areaOfTris(p1, p2, p);
                         real const a23 = areaOfTris(p2, p3, p);
                         real const a31 = areaOfTris(p3, p1, p);
 
-                        real const f1 = a23 / totalArea;
-                        real const f3 = a12 / totalArea;
-                        real const f2 = a31 / totalArea;
+                        real const f1 = a23 * invTotalArea;
+                        real const f3 = a12 * invTotalArea;
+                        real const f2 = a31 * invTotalArea;
 
                         shadePixel(shader, v1, v2, v3, p, Vector3(f1,f2,f3));
                     }
@@ -147,13 +157,13 @@ namespace Violent3D
             {
                 assert(pm.y < pb.y);
 
-                real const fdy(real(pm.y - pb.y));
+                real const invfdy(real(1) / real(pm.y - pb.y));
 
-                Vector2 fp0 = (pm.x <  ps.x) ? Vector2(real(pm.x), real(pm.y)) : Vector2(real(ps.x), real(ps.y));
-                Vector2 fp1 = (pm.x >= ps.x) ? Vector2(real(pm.x), real(pm.y)) : Vector2(real(ps.x), real(ps.y));
+                real fp0 = (pm.x <  ps.x) ? real(pm.x) : real(ps.x);
+                real fp1 = (pm.x >= ps.x) ? real(pm.x) : real(ps.x);
 
-                Vector2 const f0(real(fp0.x - pb.x) / fdy, real(1.0));
-                Vector2 const f1(real(fp1.x - pb.x) / fdy, real(1.0));
+                real const f0(real(fp0 - pb.x) * invfdy);
+                real const f1(real(fp1 - pb.x) * invfdy);
 
                 int const top = std::max(pm.y, 0);
                 int const bottom = std::min(pb.y, HEIGHT - 1);
@@ -164,17 +174,17 @@ namespace Violent3D
                 Point p;
                 for(p.y = top; p.y <= bottom; p.y++)
                 {
-                    int const left = std::max(int(fp0.x), 0);
-                    int const right = std::min(int(fp1.x), width - 1);
+                    int const left = std::max(int(fp0), 0);
+                    int const right = std::min(int(fp1), width - 1);
                     for(p.x = left; p.x <= right; p.x++)
                     {
                         real const a12 = areaOfTris(p1, p2, p);
                         real const a23 = areaOfTris(p2, p3, p);
                         real const a31 = areaOfTris(p3, p1, p);
 
-                        real const f1 = a23 / totalArea;
-                        real const f3 = a12 / totalArea;
-                        real const f2 = a31 / totalArea;
+                        real const f1 = a23 * invTotalArea;
+                        real const f3 = a12 * invTotalArea;
+                        real const f2 = a31 * invTotalArea;
 
                         shadePixel(shader, v1, v2, v3, p, Vector3(f1,f2,f3));
                     }
@@ -203,13 +213,13 @@ namespace Violent3D
             real fz = coords.x * v1.pos.z + coords.y * v2.pos.z + coords.z * v3.pos.z;
 
             // front- and backplane clipping
-            if((fz < MinZ) || (fz >= MaxZ))
+            if((fz < this->minZ) || (fz >= this->maxZ))
                 return;
 
             interpolated.pos.z = fz;
 
-            fz -= MinZ;
-            fz /= (MaxZ - MinZ);
+            fz -= this->minZ;
+            fz *= this->invScaleZ;
 
             depth_t z = depth_t(real(std::numeric_limits<depth_t>::max() * fz));
             if(z > depth(p.x,p.y))
