@@ -7,6 +7,7 @@
 #include <fstream>
 #include <memory>
 #include <chrono>
+#include <utility>
 
 // use glm for demo stuff, not required for Basic3D api
 #include <glm/glm.hpp>
@@ -521,7 +522,7 @@ void initFrame(Screen &screen)
     mtl[2].texture = &wallTex;
 
     static Violent3D::Renderer<WIDTH, HEIGHT> ren;
-    ren.setZRange(-80, 80);
+    ren.setZRange(0, 1);
     ren.setZBuffer(&zbuffer);
 
     renderer = &ren;
@@ -549,35 +550,162 @@ static Basic3D::Matrix4<> matrix =
     -0.9931068f, -3.696177f, 5.849844f, 6.048681f,
 };
 
+// https://github.com/BSVino/MathForGameDevelopers/tree/frustum-culling/math
+namespace MathForGameDevelopers
+{
+    class CPlane
+    {
+    public:
+        void Normalize()
+        {
+            // It helps a ton if our planes are normalized, meaning n is unit length.
+            // To normalize the plane, we do this operation:
+            // s(ax + by + cz + d) = s(0)
+            // We calculate s by using 1/|n|, and it gets us the number we must scale n by to make it unit length.
+            // Notice how d needs to be scaled also.
+
+            float flScale = 1 / Basic3D::length(n);
+            n.x *= flScale;
+            n.y *= flScale;
+            n.z *= flScale;
+            d *= flScale;
+        }
+
+    public:
+        Vector3<fixed> n; // The normal
+        fixed d;  // The "distance" to the origin.
+    };
+
+    #define FRUSTUM_LEFT  0
+    #define FRUSTUM_RIGHT 1
+    #define FRUSTUM_UP    2
+    #define FRUSTUM_DOWN  3
+    #define FRUSTUM_NEAR  4
+    #define FRUSTUM_FAR   5
+
+    // Frustum class defined by six planes enclosing the frustum. The normals face inward.
+    class CFrustum
+    {
+    public:
+        CFrustum(const Matrix4<fixed> & mx)
+        {
+            // Transpose matrix
+            // TODO: Fix matrix indices instead of transposing.
+            Matrix4<fixed> m;
+            for(int i = 0; i < 4; i++)
+                for(int j = 0; j < 4; j++)
+                    m.v[i][j] = mx.v[j][i];
+
+            // I'll explain all this junk in a future video.
+            p[FRUSTUM_RIGHT].n.x = m.v[0][3] - m.v[0][0];
+            p[FRUSTUM_RIGHT].n.y = m.v[1][3] - m.v[1][0];
+            p[FRUSTUM_RIGHT].n.z = m.v[2][3] - m.v[2][0];
+            p[FRUSTUM_RIGHT].d = m.v[3][3] - m.v[3][0];
+
+            p[FRUSTUM_LEFT].n.x = m.v[0][3] + m.v[0][0];
+            p[FRUSTUM_LEFT].n.y = m.v[1][3] + m.v[1][0];
+            p[FRUSTUM_LEFT].n.z = m.v[2][3] + m.v[2][0];
+            p[FRUSTUM_LEFT].d = m.v[3][3] + m.v[3][0];
+
+            p[FRUSTUM_DOWN].n.x = m.v[0][3] + m.v[0][1];
+            p[FRUSTUM_DOWN].n.y = m.v[1][3] + m.v[1][1];
+            p[FRUSTUM_DOWN].n.z = m.v[2][3] + m.v[2][1];
+            p[FRUSTUM_DOWN].d = m.v[3][3] + m.v[3][1];
+
+            p[FRUSTUM_UP].n.x = m.v[0][3] - m.v[0][1];
+            p[FRUSTUM_UP].n.y = m.v[1][3] - m.v[1][1];
+            p[FRUSTUM_UP].n.z = m.v[2][3] - m.v[2][1];
+            p[FRUSTUM_UP].d = m.v[3][3] - m.v[3][1];
+
+            p[FRUSTUM_FAR].n.x = m.v[0][3] - m.v[0][2];
+            p[FRUSTUM_FAR].n.y = m.v[1][3] - m.v[1][2];
+            p[FRUSTUM_FAR].n.z = m.v[2][3] - m.v[2][2];
+            p[FRUSTUM_FAR].d = m.v[3][3] - m.v[3][2];
+
+            p[FRUSTUM_NEAR].n.x = m.v[0][3] + m.v[0][2];
+            p[FRUSTUM_NEAR].n.y = m.v[1][3] + m.v[1][2];
+            p[FRUSTUM_NEAR].n.z = m.v[2][3] + m.v[2][2];
+            p[FRUSTUM_NEAR].d = m.v[3][3] + m.v[3][2];
+
+            // Normalize all plane normals
+            for(int i = 0; i < 6; i++)
+                p[i].Normalize();
+        }
+
+    public:
+        bool SphereIntersection(const Vector3<fixed> & vecCenter, float flRadius) const
+        {
+            // Loop through each plane that comprises the frustum.
+            for (int i = 0; i < 1; i++)
+            {
+                // Plane-sphere intersection test. If p*n + d + r < 0 then we're outside the plane.
+                // http://youtu.be/4p-E_31XOPM
+                if (Basic3D::dot(vecCenter, p[i].n) + p[i].d + flRadius <= 0)
+                    return false;
+            }
+
+            // If none of the planes had the entity lying on its "negative" side then it must be
+            // on the "positive" side for all of them. Thus the entity is inside or touching the frustum.
+            return true;
+        }
+
+    public:
+        CPlane p[6];
+    };
+}
+
 template<typename Shader, typename T1, typename T2, int sizeA, int sizeB>
 static void drawModel(
     Shader const & shader,
+    MathForGameDevelopers::CFrustum const & frustum,
     std::array<Violent3D::Vertex<T1>,sizeA> const & vertices,
     std::array<T2,sizeB> const & indices)
 {
-    static std::array<Violent3D::Vertex<>, sizeA> transformed;
+    const fixed cullDist = 0;
+
+    static std::array<std::pair<Violent3D::Vertex<>, bool>, sizeA> transformed;
     for(int i = 0; i < vertices.size(); i++)
     {
-        transformed[i].pos = Basic3D::transformPerspective(vertices[i].pos, matrix);
-        transformed[i].uv = vertices[i].uv;
+        // transform into normalized clip space
+        transformed[i].first.pos = Basic3D::transformPerspective(vertices[i].pos, matrix);
+        transformed[i].first.uv = vertices[i].uv;
 
-        transformed[i].pos.x *= (screenSize_X / 2);
-        transformed[i].pos.y *= -(screenSize_Y / 2);
+        // Cull vertex against frustum
+        transformed[i].second = !frustum.SphereIntersection(transformed[i].first.pos, cullDist);
+
+        // transform into Violent3D clip space (pixel space)
+        transformed[i].first.pos.x *= (screenSize_X / 2);
+        transformed[i].first.pos.y *= -(screenSize_Y / 2);
+        transformed[i].first.pos.z *= 0.5;
+        transformed[i].first.pos.z += 0.5;
     }
 
     for(int i = 0; i < indices.size(); i += 3)
-        Live::renderer->drawTriangle(shader, transformed[indices[i+0]], transformed[indices[i+1]], transformed[indices[i+2]]);
+    {
+        auto const & v1t = transformed[indices[i+0]];
+        auto const & v2t = transformed[indices[i+1]];
+        auto const & v3t = transformed[indices[i+2]];
+
+        // If all vertices were clipped,
+        // discard the complete polygon without even drawing
+        if(v1t.second && v2t.second && v3t.second)
+             continue;
+
+        Live::renderer->drawTriangle(shader,v1t.first,v2t.first,v3t.first);
+   }
 }
 
 void renderFrame(Screen &screen, int frameNum)
 {
     using namespace Live;
 
-    { // Setup Matrix
+    { // Setup Matrix with neat sliding effect
 
         float slide = 2.0f * std::sin(0.02f * frameNum);
 
         glm::vec3 camPos(4.82f, 3.41f, -2.62f + slide);
+        // glm::vec3 camPos(24.82f, 9.41f, -2.62f + slide);
+
         glm::vec3 camTarget(-3.17f, 1.49f, 0.37f - slide);
 
         auto matView =glm::lookAt(
@@ -590,13 +718,15 @@ void renderFrame(Screen &screen, int frameNum)
             0.1f,
             1024.0f);
 
-        auto mat =  matProj * matView;
+        auto mat = matProj * matView;
         for(int i = 0; i < 4; i++) {
             for(int j = 0; j < 4; j++) {
                 matrix.v[i][j] = mat[i][j];
             }
         }
     }
+
+    MathForGameDevelopers::CFrustum frustum(matrix);
 
     renderer->setRenderTarget(&screen);
 
@@ -605,9 +735,9 @@ void renderFrame(Screen &screen, int frameNum)
 
     stats::begin();
 
-    drawModel(mtl[0], terrain::vertices, terrain::indices);
+    drawModel(mtl[0], frustum, terrain::vertices, terrain::indices);
 
-    drawModel(mtl[1], skydome::vertices, skydome::indices);
+    drawModel(mtl[1], frustum, skydome::vertices, skydome::indices);
 
     stats::end("rasterizer");
 }

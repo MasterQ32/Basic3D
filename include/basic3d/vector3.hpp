@@ -70,6 +70,12 @@ namespace Basic3D
     }
 
     template<typename T>
+    static inline T dot(Vector3<T> const & a, Vector3<T> const & b)
+    {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    template<typename T>
     static inline Vector3<T> operator + (Vector3<T> const & lhs, Vector3<T> const & rhs)
     {
         return Vector3<T> { lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z };
