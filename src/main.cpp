@@ -309,6 +309,7 @@ namespace stats
         meanTime += count;
         counter ++;
 
+        //*
         std::cout << what
                   << " time: "
                   << count
@@ -320,6 +321,7 @@ namespace stats
                   << maxTime
                   << " us"
                   << std::endl;
+        //*/
     }
 }
 
@@ -442,63 +444,6 @@ namespace Live
 
     ZBuffer<screenSize_X, screenSize_Y> zbuffer;
 
-    /*
-    std::array<Vertex<fixed>, 24> vertices
-    {
-        Vertex<fixed> { Vector3<fixed>(-1, -1,  1), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(-1,  1,  1), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1,  1,  1), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(1, 0) },
-
-        Vertex<fixed> { Vector3<fixed>(-1, -1, -1), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(-1,  1, -1), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1,  1, -1), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(1, 0) },
-
-        Vertex<fixed> { Vector3<fixed>(-1, -1, -1), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>(-1, -1,  1), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(-1,  1,  1), Vector2<fixed>(1, 0) },
-        Vertex<fixed> { Vector3<fixed>(-1,  1, -1), Vector2<fixed>(1, 1) },
-
-        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(1, 0) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(1, 1) },
-
-
-        Vertex<fixed> { Vector3<fixed>(-1, -1, -1), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(-1, -1,  1), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1,  1), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1, -1, -1), Vector2<fixed>(1, 0) },
-
-        Vertex<fixed> { Vector3<fixed>(-1,  1, -1), Vector2<fixed>(0, 0) },
-        Vertex<fixed> { Vector3<fixed>(-1,  1,  1), Vector2<fixed>(0, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1,  1,  1), Vector2<fixed>(1, 1) },
-        Vertex<fixed> { Vector3<fixed>( 1,  1, -1), Vector2<fixed>(1, 0) },
-    };
-
-    std::array<int, 36> indices
-    {
-        0, 1, 3,
-        3, 1, 2,
-
-        4, 5, 7,
-        7, 5, 6,
-
-        8, 9, 11,
-        11, 9, 10,
-
-        12, 13, 15,
-        15, 13, 14,
-
-        16, 17, 19,
-        19, 17, 18,
-
-        20, 21, 23,
-        23, 21, 22,
-    };
-    */
-
 #include "terrain.hpp"
 #include "skydome.hpp"
 }
@@ -527,28 +472,6 @@ void initFrame(Screen &screen)
 
     renderer = &ren;
 }
-
-/*
-    var matView = Matrix4.LookAt(
-        new Vector3(4.82f, 3.41f, -2.62f),
-        new Vector3(-3.17f, 1.49f, 0.37f),
-        new Vector3(0, 1, 0));
-    var matProj = Matrix4.CreatePerspectiveFieldOfView(
-        MathHelper.DegreesToRadians(60),
-        320.0f / 240.0f,
-        0.1f,
-        1024.0f);
-
-    var mat = matView * matProj;
-*/
-
-static Basic3D::Matrix4<> matrix =
-{
-    -0.4552882f, -0.3561772f, -0.9138938f, -0.9137153f,
-    0.0f, 1.689785f, -0.219609f, -0.2195661f,
-    -1.21664f, 0.1332879f, 0.3419953f, 0.3419285f,
-    -0.9931068f, -3.696177f, 5.849844f, 6.048681f,
-};
 
 // https://github.com/BSVino/MathForGameDevelopers/tree/frustum-culling/math
 namespace MathForGameDevelopers
@@ -654,6 +577,9 @@ namespace MathForGameDevelopers
     };
 }
 
+static int vlimit = 1;
+Basic3D::Matrix4<> matrix;
+
 template<typename Shader, typename T1, typename T2, int sizeA, int sizeB>
 static void drawModel(
     Shader const & shader,
@@ -698,6 +624,12 @@ static void drawModel(
 void renderFrame(Screen &screen, int frameNum)
 {
     using namespace Live;
+
+    if(key_hit('9'))
+        std::cout << ++vlimit << std::endl;
+
+    if(key_hit('3'))
+        std::cout << --vlimit << std::endl;
 
     { // Setup Matrix with neat sliding effect
 

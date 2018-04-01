@@ -7,6 +7,9 @@
 
 namespace Basic3D
 {
+    //! Provides a basic render target that
+    //! allows getting and setting pixel values.
+    //! It also implements a texture so it can be used in another render process.
     template<int WIDTH, int HEIGHT, typename Pixel = Basic3D::Pixel32>
     class Image :
         public Texture<Pixel>
@@ -36,29 +39,33 @@ namespace Basic3D
         }
 
     public: // data accessors
+        //! Returns a pointer to the first pixel
         pixel_t * data() {
             return this->pixels.data();
         }
 
+        //! Returns a pointer to the first pixel
         pixel_t const * data() const {
             return this->pixels.data();
         }
 
+        //! Returns a pointer to the given scanline
         pixel_t * scanline(int y) {
             return &this->pixels[y * WIDTH];
         }
 
+        //! Returns a pointer to the given scanline
         pixel_t const * scanline(int y) const {
             return &this->pixels[y * WIDTH];
         }
 
-        //! gets a pixel value
-        pixel_t & pixel(int x, int y) {
-            return this->scanline(y)[x];
+        //! sets a pixel value
+        void setPixel(int x, int y, pixel_t const & color) {
+            this->scanline(y)[x] = color;
         }
 
         //! gets a pixel value
-        pixel_t const & pixel(int x, int y) const {
+        pixel_t const & getPixel(int x, int y) const {
             return this->scanline(y)[x];
         }
 

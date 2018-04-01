@@ -114,6 +114,9 @@ namespace Violent3D
 
             real const invTotalArea = real(1) / areaOfTris(p1, p2, p3);
 
+            if(invTotalArea < (real(1) / real(width * height)))
+                return;
+
             if(pt.y != pm.y) // Draw upper half
             {
                 assert(pt.y < pm.y);
@@ -222,7 +225,7 @@ namespace Violent3D
             fz *= this->invScaleZ;
 
             depth_t z = depth_t(real(std::numeric_limits<depth_t>::max() * fz));
-            if(z > depth(p.x,p.y))
+            if(z > getDepth(p.x,p.y))
                 return;
 
             Vector2 const uv;
@@ -236,8 +239,8 @@ namespace Violent3D
             if(discard)
                 return;
 
-            pixel(p.x,p.y) = color;
-            depth(p.x,p.y) = z;
+           setPixel(p.x,p.y,color);
+           setDepth(p.x,p.y,z);
         }
 
         //! Converts a vertex into an integer screen point

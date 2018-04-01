@@ -5,6 +5,12 @@
 
 static Basic3D::Image<screenSize_X, screenSize_Y> screen;
 
+bool keymap[SDLK_LAST];
+bool keyhits[SDLK_LAST];
+
+bool key_pressed(int vk) { return keymap[vk]; }
+bool key_hit(int vk) { return keyhits[vk]; }
+
 extern "C" FILE * __iob_func()
 {
     static FILE data[3] = {*stdin,*stdout,*stderr };
@@ -26,11 +32,22 @@ int main(int argc, char *argv[])
     while(true)
     {
         SDL_Event e;
+        memset(keyhits, 0, sizeof keyhits);
         while(SDL_PollEvent(&e))
         {
             if((e.type == SDL_QUIT) || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
                 ExitProcess(0);
                 return 0;
+            }
+            switch(e.type)
+            {
+                case SDL_KEYDOWN:
+                    keymap[e.key.keysym.sym] = true;
+                    keyhits[e.key.keysym.sym] = true;
+                    break;
+                case SDL_KEYUP:
+                    keymap[e.key.keysym.sym] = false;
+                    break;
             }
         }
 

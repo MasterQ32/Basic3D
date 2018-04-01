@@ -49,7 +49,7 @@ namespace Fays
 
             while(1)
             {
-                pixel(x0, y0) = color;
+                setPixel(x0, y0, color);
 
                 if ((x0 == x1) && (y0 == y1))
                     break;
@@ -79,23 +79,23 @@ namespace Fays
             if(clip.left == rect.left())
             {
                 for(int y = clip.top; y < clip.bottom; y++)
-                    pixel(clip.left, y) = color;
+                    setPixel(clip.left, y, color);
             }
             if(clip.right == rect.right())
             {
                 for(int y = clip.top; y < clip.bottom; y++)
-                    pixel(clip.right - 1, y) = color;
+                    setPixel(clip.right - 1, y, color);
             }
 
             if(clip.top == rect.top())
             {
                 for(int x = clip.left; x < clip.right; x++)
-                    pixel(x, clip.top) = color;
+                    setPixel(x, clip.top, color);
             }
             if(clip.bottom == rect.bottom())
             {
                 for(int x = clip.left; x < clip.right; x++)
-                    pixel(x, clip.bottom - 1) = color;
+                    setPixel(x, clip.bottom - 1, color);
             }
         }
 
@@ -112,7 +112,7 @@ namespace Fays
             {
                 for(int x = clip.left; x < clip.right; x++)
                 {
-                    pixel(x, y) = color;
+                    setPixel(x, y, color);
                 }
             }
         }
@@ -136,7 +136,7 @@ namespace Fays
                         (x + dx) % pattern.width,
                         (y + dy) % pattern.height);
                     if(Basic3D::alphaTest(color))
-                        pixel(x, y) = color;
+                        setPixel(x, y, color);
                 }
             }
         }
@@ -155,7 +155,7 @@ namespace Fays
                 {
                     auto color = texture.at(tx, ty);
                     if(Basic3D::alphaTest(color))
-                        pixel(sx, sy) = color;
+                        setPixel(sx, sy, color);
                 }
             }
         }
@@ -177,7 +177,7 @@ namespace Fays
 
                     auto color = texture.at(tx, ty);
                     if(Basic3D::alphaTest(color))
-                        pixel(x, y) = color;
+                        setPixel(x, y, color);
                 }
             }
         }
@@ -195,17 +195,17 @@ namespace Fays
             {
                 for(int sx = clip.left, tx = (top - y); sx < clip.right; sx++, ty++)
                 {
-                    if(depth(sx, sy) > z)
+                    if(getDepth(sx, sy) > z)
                         continue;
 
                     auto color = texture.at(tx, ty);
                     if(!Basic3D::alphaTest(color))
                         continue;
 
-                    pixel(sx, sy) = color;
+                    setPixel(sx, sy, color);
 
                     if(writeZ)
-                        depth(sx, sy) = z;
+                        setDepth(sx, sy, z);
                 }
             }
         }
@@ -223,7 +223,7 @@ namespace Fays
             {
                 for(int x = clip.left; x < clip.right; x++)
                 {
-                    if(depth(sx, sy) > z)
+                    if(getDepth(sx, sy) > z)
                         continue;
 
                     int const tx = (texture.width * (x - rect.x)) / rect.width;
@@ -233,10 +233,10 @@ namespace Fays
                     if(!Basic3D::alphaTest(color))
                         continue;
 
-                    pixel(x, y) = color;
+                    setPixel(x, y, color);
 
                     if(writeZ)
-                        depth(sx, sy) = z;
+                        setDepth(sx, sy, z);
                 }
             }
         }

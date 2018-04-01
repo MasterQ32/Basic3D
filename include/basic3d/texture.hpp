@@ -4,21 +4,23 @@
 
 namespace Basic3D
 {
+    //! A basic texture type that allows sampling of pixels.
     template<typename Pixel = Basic3D::Pixel32>
     class Texture
     {
     public:
         typedef Pixel pixel_t;
     public:
-        pixel_t const * const data;
-        int const width;
-        int const height;
-        int const stride;
+        int width;
+        int height;
+        int stride;
+        pixel_t const * data;
 
     public:
-        Texture(pixel_t const * img, int w, int h, int stride = 0) : data(img), width(w), height(h), stride((stride == 0) ? w : stride) { }
+        Texture() = default;
+        Texture(pixel_t const * img, int w, int h, int stride = 0) : width(w), height(h), stride((stride == 0) ? w : stride), data(img) { }
         Texture(Texture const &) = delete;
-        Texture(Texture && other) : data(other.data), width(other.width), height(other.height) { }
+        Texture(Texture && other) : width(other.width), height(other.height), data(other.data) { }
         ~Texture() = default;
 
         //! gets a pixel value

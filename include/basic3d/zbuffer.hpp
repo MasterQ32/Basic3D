@@ -6,6 +6,7 @@
 
 namespace Basic3D
 {
+    //! Provides a basic z-buffer
     template<int WIDTH, int HEIGHT, typename Depth = std::uint16_t>
     class ZBuffer
     {
@@ -24,11 +25,11 @@ namespace Basic3D
         }
 
     public:
-        depth_t & depth(int x, int y) {
-            return zvalues[y * WIDTH + x];
+        void setDepth(int x, int y, depth_t const & value)  {
+            zvalues[y * WIDTH + x] = value;
         }
 
-        depth_t const & depth(int x, int y) const {
+        depth_t const & getDepth(int x, int y) const {
             return zvalues[y * WIDTH + x];
         }
     };

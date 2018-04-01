@@ -53,6 +53,18 @@ namespace Basic3D
         return (t >= 0.0) && (u >= 0.0 && u <= 1.0);
     }
 
+    template<typename T,typename TR>
+    T lerp(T a, T b, TR f)
+    {
+        return a + f * (b - a);
+    }
+
+    template<typename T>
+    T clamp(T v, T min, T max)
+    {
+        return std::min(std::max(v, min), max);
+    }
+
     template<typename T>
     T fract(T a)
     {

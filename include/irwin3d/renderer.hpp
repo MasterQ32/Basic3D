@@ -39,6 +39,9 @@ namespace Irwin3D
         Texture const * CeilingTexture;
         Texture const * FloorTexture;
 
+        bool DrawCeiling;
+        bool DrawFloor;
+
     public:
         explicit Renderer(RenderTarget * renderTarget = nullptr, ZBuffer * zbuffer = nullptr) :
             Basic3D::Renderer<WIDTH, HEIGHT, RenderTarget, ZBuffer>(renderTarget, zbuffer),
@@ -49,7 +52,9 @@ namespace Irwin3D
             WallColor(0xB2, 0x22, 0x22),
             FloorColor(0x8B, 0x45, 0x13),
             CeilingTexture(nullptr),
-            FloorTexture(nullptr)
+            FloorTexture(nullptr),
+            DrawCeiling(true),
+            DrawFloor(true)
         {
             for(int x = 0; x < width; x++)
             {
@@ -70,6 +75,12 @@ namespace Irwin3D
 
     public:
 
+        //! returns the direction a ray has when going through a specifc column
+        vec2_t getRayDirection(int column) const
+        {
+            return rotate(protorays[column], this->CameraRotation);
+        }
+
         template<typename TScene>
         void drawWalls(TScene const & scene)
         {
@@ -77,7 +88,7 @@ namespace Irwin3D
             for (int x = 0; x < width; x++)
             {
                 // rotate our precalculated ray
-                vec2_t const dir(rotate(protorays[x], this->CameraRotation));
+                vec2_t const dir(this->getRayDirection(x));
 
                 // Raycast here
                 RaycastResult<pixel_t,real> const * const result = scene.castRay(this->CameraPosition, dir);
@@ -105,30 +116,33 @@ namespace Irwin3D
                 int const wallTop = (height / 2) - (wallHeight / 2);
                 int const wallBottom = (height / 2) + (wallHeight / 2);
 
-                // draw the ceiling with either texture or color
-                if (CeilingTexture != nullptr)
+                if(this->DrawCeiling)
                 {
-                    for (int y = 0; y < wallTop; y++)
+                    // draw the ceiling with either texture or color
+                    if (CeilingTexture != nullptr)
                     {
-                        real const fy = real(1.0) - (real(2.0 / (height - 1)) * (real(y)));
+                        for (int y = 0; y < wallTop; y++)
+                        {
+                            real const fy = real(1.0) - (real(2.0 / (height - 1)) * (real(y)));
 
-                        if(fy == real(0))
-                            continue;
+                            if(fy == real(0))
+                                continue;
 
-                        real const d = real(1.0) / fy;
+                            real const d = real(1.0) / fy;
 
-                        vec2_t const pos(CameraPosition + dir * d);
+                            vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int(real(CeilingTexture->width - 1) * Basic3D::fract(pos.x)));
-                        int const v(int(real(CeilingTexture->height - 1) * Basic3D::fract(pos.y)));
+                            int const u(int(real(CeilingTexture->width - 1) * Basic3D::fract(pos.x)));
+                            int const v(int(real(CeilingTexture->height - 1) * Basic3D::fract(pos.y)));
 
-                        pixel(x,y) = CeilingTexture->sample(u, v);
+                            setPixel(x, y, CeilingTexture->sample(u, v));
+                        }
                     }
-                }
-                else
-                {
-                    for (int y = 0; y < wallTop; y++)
-                        pixel(x,y) = CeilingColor;
+                    else
+                    {
+                        for (int y = 0; y < wallTop; y++)
+                            setPixel(x,y,CeilingColor);
+                    }
                 }
 
                 // draw the wall
@@ -139,39 +153,42 @@ namespace Irwin3D
                     {
                         int const u = int(real(texture->width - 1) * Basic3D::fract(result->u));
                         int const v = texture->height * (y - wallTop) / wallHeight;
-                        pixel(x,y) = texture->sample(u, v);
+                        setPixel(x,y,texture->sample(u, v));
                     }
                 }
                 else
                 {
                     for (int y = std::max(0, wallTop); y < maxy; y++)
-                        pixel(x,y) = this->WallColor;
+                        setPixel(x,y,this->WallColor);
                 }
 
-                // draw the ground with either texture or color
-                if (FloorTexture != nullptr)
+                if(this->DrawFloor)
                 {
-                    for (int y = wallBottom; y < height; y++)
+                    // draw the ground with either texture or color
+                    if (FloorTexture != nullptr)
                     {
-                        real const fy = real(1.0 / (height/2)) * real(y - height/2 + 1);
+                        for (int y = wallBottom; y < height; y++)
+                        {
+                            real const fy = real(1.0 / (height/2)) * real(y - height/2 + 1);
 
-                        if(fy == real(0))
-                            continue;
+                            if(fy == real(0))
+                                continue;
 
-                        real const d = real(1.0) / fy;
+                            real const d = real(1.0) / fy;
 
-                        vec2_t const pos(CameraPosition + dir * d);
+                            vec2_t const pos(CameraPosition + dir * d);
 
-                        int const u(int(real(FloorTexture->width - 1) * Basic3D::fract(pos.x)));
-                        int const v(int(real(FloorTexture->height - 1) * Basic3D::fract(pos.y)));
+                            int const u(int(real(FloorTexture->width - 1) * Basic3D::fract(pos.x)));
+                            int const v(int(real(FloorTexture->height - 1) * Basic3D::fract(pos.y)));
 
-                        pixel(x,y) = FloorTexture->sample(u, v);
+                            setPixel(x,y,FloorTexture->sample(u, v));
+                        }
                     }
-                }
-                else
-                {
-                    for (int y = wallBottom; y < height; y++)
-                        pixel(x,y) = FloorColor;
+                    else
+                    {
+                        for (int y = wallBottom; y < height; y++)
+                            setPixel(x,y,FloorColor);
+                    }
                 }
             }
         }
@@ -255,7 +272,7 @@ namespace Irwin3D
                         if ((c.alpha & 0x80) == 0)
                             continue;
 
-                        pixel(x,y) = c;
+                        setPixel(x,y,c);
                     }
                 }
             }

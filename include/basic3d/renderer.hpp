@@ -37,12 +37,20 @@ namespace Basic3D
         }
 
     protected:
-        pixel_t & pixel(int x, int y) {
-            return renderTarget->pixel(x, y);
+        void setPixel(int x, int y, pixel_t const & color) {
+            renderTarget->setPixel(x, y, color);
         }
 
-        depth_t & depth(int x, int y) {
-            return zbuffer->depth(x, y);
+        pixel_t getPixel(int x, int y) {
+            return renderTarget->getPixel(x, y);
+        }
+
+        void setDepth(int x, int y, depth_t const & depth) {
+            zbuffer->setDepth(x, y, depth);
+        }
+
+        depth_t getDepth(int x, int y) {
+            return zbuffer->getDepth(x, y);
         }
     };
 }
